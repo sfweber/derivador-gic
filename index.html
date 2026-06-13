@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Derivador GIC — el cursor y las teclas</title>
+<style>
+  :root {
+    --navy: #1E2761; --navydk: #16193F; --ice: #CADCFC; --icedk: #8FA8D6;
+    --red: #B23A2E; --gray: #6B6B6B; --boxbg: #EEF2FC; --green: #1E6B33; --greenbg: #EAF6EC;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: Calibri, 'Segoe UI', sans-serif; margin: 0; background: #fafafa; color: #1a1a1a; }
+  header { background: var(--navy); color: white; padding: 14px 28px; }
+  header h1 { font-family: Georgia, serif; margin: 0; font-size: 1.5em; }
+  header p { margin: 4px 0 0; color: var(--ice); font-style: italic; font-size: .95em; }
+  main { max-width: 1000px; margin: 0 auto; padding: 20px; }
+  .panel { background: white; border: 1px solid var(--icedk); border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; }
+  .panel h2 { margin: 0 0 10px; color: var(--navy); font-size: 1.05em; }
+  select, input[type=text], textarea { font-family: Consolas, monospace; font-size: 1em; padding: 6px 8px; border: 1px solid var(--icedk); border-radius: 5px; }
+  textarea { width: 100%; min-height: 70px; }
+
+  /* la cadena en derivación */
+  #cinta { font-family: Consolas, monospace; font-size: 2.2em; letter-spacing: .08em; padding: 18px 10px; min-height: 1.6em;
+           display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
+  .term { color: var(--navy); font-weight: bold; }
+  .nt { display: inline-block; background: var(--ice); color: var(--navy); border: 2px solid var(--icedk); border-radius: 6px;
+        padding: 0 .25em; cursor: pointer; font-weight: bold; }
+  .nt.sel { background: var(--navy); color: white; border-color: var(--navy); animation: blink 1.1s step-end infinite; }
+  @keyframes blink { 50% { background: var(--ice); color: var(--navy); } }
+  .lambda-fin { color: var(--green); }
+
+  /* teclado de producciones */
+  #teclado { display: flex; flex-wrap: wrap; gap: 10px; }
+  button.tecla { font-family: Consolas, monospace; font-size: 1.25em; font-weight: bold; padding: 12px 18px;
+                 background: var(--boxbg); color: var(--navy); border: 2px solid var(--icedk); border-bottom-width: 4px;
+                 border-radius: 8px; cursor: pointer; transition: transform .05s; }
+  button.tecla:hover:not(:disabled) { background: var(--ice); }
+  button.tecla:active:not(:disabled) { transform: translateY(2px); border-bottom-width: 2px; }
+  button.tecla:disabled { opacity: .35; cursor: not-allowed; }
+  button.aux { font-size: .95em; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--icedk);
+               background: white; color: var(--navy); cursor: pointer; margin-right: 8px; }
+  button.aux:hover { background: var(--boxbg); }
+
+  #historia { font-family: Consolas, monospace; font-size: 1.05em; line-height: 1.7; color: var(--navy); }
+  #historia .regla { color: var(--gray); font-size: .85em; }
+  #palabras span { display: inline-block; font-family: Consolas, monospace; background: var(--greenbg); color: var(--green);
+                   border: 1px solid #8FB89A; border-radius: 5px; padding: 2px 10px; margin: 3px 4px 0 0; font-weight: bold; }
+  .ok { color: var(--green); font-weight: bold; }
+  .err { color: var(--red); font-weight: bold; }
+  .hint { color: var(--gray); font-style: italic; font-size: .9em; }
+  .fila { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  footer { text-align: center; color: var(--gray); font-style: italic; font-size: .85em; padding: 10px 0 24px; }
+
+  /* solapas historia / árbol */
+  .tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+  button.tab { font-size: .95em; padding: 6px 16px; border: 1px solid var(--icedk); border-radius: 6px 6px 0 0;
+               background: var(--boxbg); color: var(--navy); cursor: pointer; }
+  button.tab.activa { background: var(--navy); color: white; font-weight: bold; border-color: var(--navy); }
+
+  /* árbol de derivación (SVG) */
+  #arbol { overflow-x: auto; }
+  #arbol svg { display: block; margin: 4px auto; }
+  .tnodo circle { fill: white; stroke: var(--icedk); stroke-width: 1.5; }
+  .tnodo text { font-family: Consolas, monospace; font-size: 15px; font-weight: bold; fill: var(--navy);
+                text-anchor: middle; dominant-baseline: central; }
+  .tnodo.nt circle { fill: var(--ice); cursor: pointer; }
+  .tnodo.nt text { cursor: pointer; }
+  .tnodo.ntsel circle { fill: var(--navy); stroke: var(--navy); }
+  .tnodo.ntsel text { fill: white; }
+  .tnodo.lam circle { fill: var(--greenbg); stroke: #8FB89A; }
+  .tnodo.lam text { fill: var(--green); }
+  .tarista { stroke: var(--icedk); stroke-width: 1.5; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Derivador GIC — el cursor y las teclas</h1>
+  <p>Los no terminales son cursores; cada producción es una tecla. Apretá teclas hasta que no queden cursores: esa es tu palabra.</p>
+</header>
+<main>
+
+  <div class="panel">
+    <h2>Gramática</h2>
+    <div class="fila">
+      <select id="preset" onchange="cargarPreset()"></select>
+      <span class="hint">o escribila abajo (formato: <code>S -> aS | Sb | λ</code>; podés escribir <code>lambda</code>)</span>
+    </div>
+    <textarea id="gramatica" spellcheck="false"></textarea>
+    <div style="margin-top:8px">
+      <button class="aux" onclick="aplicarGramatica()">Cargar gramática</button>
+      <span id="gramError" class="err"></span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Derivación <span class="hint">— si hay más de un cursor, tocá el que querés expandir (por defecto: el de más a la izquierda)</span></h2>
+    <div id="cinta"></div>
+    <div id="estado" style="margin:6px 0 12px"></div>
+    <div id="teclado"></div>
+    <div style="margin-top:14px">
+      <button class="aux" onclick="deshacer()">⌫ Deshacer</button>
+      <button class="aux" onclick="reiniciar()">↺ Reiniciar</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Registro de la derivación</h2>
+    <div class="tabs">
+      <button id="tabHistoria" class="tab activa" onclick="verTab('historia')">Historia</button>
+      <button id="tabArbol" class="tab" onclick="verTab('arbol')">Árbol de derivación</button>
+    </div>
+    <div id="historia"></div>
+    <div id="arbolWrap" style="display:none">
+      <div id="arbol"></div>
+      <p class="hint">Derivaciones distintas (el orden en que expandís los cursores) pueden dar el <strong>mismo árbol</strong> — el árbol abstrae el orden. Si una palabra tiene dos árboles distintos, la gramática es <strong>ambigua</strong>.</p>
+    </div>
+  </div>
+
+  <div class="fila">
+    <div class="panel" style="flex:1; min-width:300px">
+      <h2>Desafío <span class="hint">— ¿podés generar exactamente esta palabra?</span></h2>
+      <input type="text" id="objetivo" placeholder="ej: aabcdd" oninput="render()">
+      <span id="desafioMsg" style="margin-left:10px"></span>
+    </div>
+    <div class="panel" style="flex:1; min-width:300px">
+      <h2>Palabras que generaste</h2>
+      <div id="palabras"><span class="hint" style="background:none;border:none;color:var(--gray)">todavía ninguna</span></div>
+    </div>
+  </div>
+
+</main>
+<footer>Herramienta educativa por <strong>Federico Weber</strong> · Autómatas y Gramáticas · UNLaM (DIIT) — material didáctico de práctica (Unidad 3A) · La cadena vacía se escribe λ<br>
+v0.2 <strong>beta</strong> — herramienta demostrativa con ejemplos de la práctica; puede contener errores. No reemplaza la teoría ni a JFLAP.</footer>
+
+<script>
+// ---------- presets de la práctica ----------
+const PRESETS = [
+  { nombre: "Clase: S → aS | Sb | λ  (a*b*)", texto: "S -> aS | Sb | λ" },
+  { nombre: "Ej 1: S → aSd | A …", texto: "S -> aSd | A\nA -> bAc | λ" },
+  { nombre: "Ej 2a: S → aSb | A …", texto: "S -> aSb | A\nA -> cA | Ad | λ" },
+  { nombre: "Ej 2b: S → cS | Sd | A …", texto: "S -> cS | Sd | A\nA -> aAb | λ" },
+  { nombre: "CYK (libro): S→AB|BA|SS|AC|BD …", texto: "S -> AB | BA | SS | AC | BD\nA -> a\nB -> b\nC -> SB\nD -> SA" },
+  { nombre: "aⁿbⁿ (no regular): S → aSb | λ", texto: "S -> aSb | λ" },
+];
+
+// ---------- estado ----------
+let G = null;          // { start, prods: [{lhs, rhs, label}] }
+let forma = [];        // array de símbolos (string de 1 char)
+let sel = -1;          // índice del no terminal seleccionado en forma
+let historia = [];     // [{forma: [...], regla: "S → aS" | null}]
+let palabras = new Set();
+
+// ---------- parseo de gramática ----------
+function parsearGramatica(txt) {
+  const prods = [];
+  let start = null;
+  const lineas = txt.split("\n").map(l => l.trim()).filter(l => l);
+  for (const linea of lineas) {
+    const m = linea.match(/^([A-Z])\s*(?:->|→)\s*(.+)$/);
+    if (!m) throw `No entiendo la línea: «${linea}»`;
+    const lhs = m[1];
+    if (start === null) start = lhs;
+    for (let alt of m[2].split("|")) {
+      alt = alt.replace(/\s+/g, "");   // «a S d» = «aSd»
+      if (alt === "") throw `Alternativa vacía en «${linea}» — si querés la cadena vacía, escribí λ`;
+      if (/^(λ|lambda|landa)$/i.test(alt)) alt = "";
+      if (!/^[A-Za-z]*$/.test(alt)) throw `Lado derecho inválido: «${alt}» (solo letras o λ)`;
+      const label = `${lhs} → ${alt === "" ? "λ" : alt}`;
+      if (!prods.some(q => q.label === label)) prods.push({ lhs, rhs: alt, label });
+    }
+  }
+  if (!prods.length) throw "Gramática vacía";
+  const nts = new Set(prods.map(p => p.lhs));
+  for (const p of prods)
+    for (const ch of p.rhs)
+      if (ch === ch.toUpperCase() && /[A-Z]/.test(ch) && !nts.has(ch))
+        throw `El no terminal «${ch}» no tiene producciones`;
+  return { start, prods, nts };
+}
+
+// ---------- mecánica ----------
+function esNT(ch) { return G && G.nts.has(ch); }
+function ntIndices() { return forma.map((c, i) => esNT(c) ? i : -1).filter(i => i >= 0); }
+
+function aplicar(prod) {
+  if (sel < 0 || forma[sel] !== prod.lhs) return;
+  const nueva = forma.slice(0, sel).concat(prod.rhs.split(""), forma.slice(sel + 1));
+  forma = nueva;
+  historia.push({ forma: forma.slice(), regla: prod.label, sel, rhs: prod.rhs });
+  const nts = ntIndices();
+  sel = nts.length ? nts[0] : -1;
+  if (!nts.length) palabras.add(forma.join("") === "" ? "λ" : forma.join(""));
+  render();
+}
+
+function deshacer() {
+  if (historia.length <= 1) return;
+  historia.pop();
+  forma = historia[historia.length - 1].forma.slice();
+  const nts = ntIndices();
+  sel = nts.length ? nts[0] : -1;
+  render();
+}
+
+function reiniciar() {
+  if (!G) return;
+  forma = [G.start];
+  sel = 0;
+  historia = [{ forma: forma.slice(), regla: null }];
+  render();
+}
+
+// ---------- UI ----------
+function cargarPreset() {
+  document.getElementById("gramatica").value = PRESETS[+document.getElementById("preset").value].texto;
+  aplicarGramatica();
+}
+
+function aplicarGramatica() {
+  const err = document.getElementById("gramError");
+  try {
+    G = parsearGramatica(document.getElementById("gramatica").value);
+    err.textContent = "";
+    palabras = new Set();   // las palabras generadas son DE esta gramática
+    reiniciar();
+  } catch (e) { err.textContent = "⚠ " + e; }
+}
+
+function render() {
+  // cinta
+  const cinta = document.getElementById("cinta");
+  cinta.innerHTML = "";
+  if (forma.length === 0) {
+    cinta.innerHTML = '<span class="lambda-fin">λ</span><span style="font-size:.5em;color:var(--green);margin-left:12px">(la cadena vacía: ¡palabra terminada!)</span>';
+  } else {
+    forma.forEach((ch, i) => {
+      const sp = document.createElement("span");
+      sp.textContent = ch;
+      if (esNT(ch)) {
+        sp.className = "nt" + (i === sel ? " sel" : "");
+        sp.title = "tocá para seleccionar este cursor";
+        sp.onclick = () => { sel = i; render(); };
+      } else sp.className = "term";
+      cinta.appendChild(sp);
+    });
+  }
+  // estado
+  const nts = ntIndices();
+  document.getElementById("estado").innerHTML = nts.length
+    ? `<span class="hint">quedan ${nts.length} cursor${nts.length > 1 ? "es" : ""} — la cadena todavía NO es una palabra del lenguaje</span>`
+    : `<span class="ok">✓ Sin cursores: «${forma.join("") || "λ"}» es una palabra del lenguaje</span>`;
+  // teclado
+  const tec = document.getElementById("teclado");
+  tec.innerHTML = "";
+  if (G) for (const p of G.prods) {
+    const b = document.createElement("button");
+    b.className = "tecla";
+    b.textContent = p.label;
+    b.disabled = sel < 0 || forma[sel] !== p.lhs;
+    b.onclick = () => aplicar(p);
+    tec.appendChild(b);
+  }
+  // historia
+  document.getElementById("historia").innerHTML = historia.map((h, i) => {
+    const f = h.forma.length ? h.forma.join("") : "λ";
+    return (i === 0 ? "&nbsp;&nbsp;" : "⇒ ") + f + (h.regla ? `&nbsp;&nbsp;<span class="regla">(${h.regla})</span>` : "");
+  }).join("<br>");
+  // árbol (siempre actualizado, esté visible o no)
+  renderArbol();
+  // palabras
+  const pal = document.getElementById("palabras");
+  pal.innerHTML = palabras.size
+    ? [...palabras].map(w => `<span>${w}</span>`).join("")
+    : '<span class="hint" style="background:none;border:none;color:var(--gray)">todavía ninguna</span>';
+  // desafío
+  const objetivo = document.getElementById("objetivo").value.trim();
+  const msg = document.getElementById("desafioMsg");
+  if (!objetivo) msg.textContent = "";
+  else if (palabras.has(objetivo)) msg.innerHTML = '<span class="ok">✓ ¡La generaste!</span>';
+  else if (!nts.length && forma.join("") !== objetivo) msg.innerHTML = '<span class="err">esa no fue — reiniciá y probá otra secuencia de teclas</span>';
+  else msg.innerHTML = '<span class="hint">en camino…</span>';
+}
+
+// ---------- árbol de derivación ----------
+// Reconstruye el árbol por REPLAY de la historia: cada paso expande la hoja
+// no-terminal cuya posición en la frontera visible (hojas sin λ) era `sel`.
+// Invariante: frontera(árbol) sin λ === forma.
+function construirArbol() {
+  if (!G || !historia.length) return null;
+  const raiz = { sym: G.start, children: null };
+  for (const paso of historia) {
+    if (paso.rhs === undefined) continue;   // entrada inicial (sin regla)
+    let idx = -1, objetivo = null;
+    (function buscar(n) {
+      if (objetivo) return;
+      if (!n.children) {
+        if (n.sym !== "λ") { idx++; if (idx === paso.sel) objetivo = n; }
+        return;
+      }
+      n.children.forEach(buscar);
+    })(raiz);
+    if (!objetivo) break;                   // no debería pasar
+    objetivo.children = paso.rhs === ""
+      ? [{ sym: "λ", children: null }]
+      : paso.rhs.split("").map(c => ({ sym: c, children: null }));
+  }
+  return raiz;
+}
+
+function renderArbol() {
+  const cont = document.getElementById("arbol");
+  cont.innerHTML = "";
+  const raiz = construirArbol();
+  if (!raiz) return;
+  // layout: hojas equiespaciadas en x, padres centrados sobre sus hijos
+  let nextX = 0, prof = 0;
+  const nodos = [], aristas = [];
+  (function ubicar(n, d) {
+    n.d = d; prof = Math.max(prof, d);
+    if (!n.children) n.x = nextX++;
+    else {
+      n.children.forEach(h => { ubicar(h, d + 1); aristas.push([n, h]); });
+      n.x = (n.children[0].x + n.children[n.children.length - 1].x) / 2;
+    }
+    nodos.push(n);
+  })(raiz, 0);
+  const DX = 52, DY = 62, R = 15, PAD = 28;
+  const W = PAD * 2 + R * 2 + Math.max(nextX - 1, 0) * DX;
+  const H = PAD * 2 + R * 2 + prof * DY;
+  const px = n => PAD + R + n.x * DX, py = n => PAD + R + n.d * DY;
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("width", W);
+  svg.setAttribute("height", H);
+  for (const [a, b] of aristas) {
+    const l = document.createElementNS(NS, "line");
+    l.setAttribute("x1", px(a)); l.setAttribute("y1", py(a) + R);
+    l.setAttribute("x2", px(b)); l.setAttribute("y2", py(b) - R);
+    l.setAttribute("class", "tarista");
+    svg.appendChild(l);
+  }
+  let visIdx = -1;   // posición en la frontera visible = índice en forma
+  for (const n of nodos) {
+    const esHoja = !n.children;
+    if (esHoja && n.sym !== "λ") visIdx++;
+    const miIdx = visIdx;
+    const g = document.createElementNS(NS, "g");
+    let cls = "tnodo";
+    if (esHoja && n.sym === "λ") cls += " lam";
+    else if (esHoja && esNT(n.sym)) {
+      cls += miIdx === sel ? " nt ntsel" : " nt";
+      g.onclick = () => { sel = miIdx; render(); };
+      g.setAttribute("data-idx", miIdx);
+    }
+    g.setAttribute("class", cls);
+    const c = document.createElementNS(NS, "circle");
+    c.setAttribute("cx", px(n)); c.setAttribute("cy", py(n)); c.setAttribute("r", R);
+    const t = document.createElementNS(NS, "text");
+    t.setAttribute("x", px(n)); t.setAttribute("y", py(n));
+    t.textContent = n.sym;
+    g.appendChild(c); g.appendChild(t);
+    svg.appendChild(g);
+  }
+  cont.appendChild(svg);
+}
+
+function verTab(t) {
+  document.getElementById("historia").style.display = t === "historia" ? "" : "none";
+  document.getElementById("arbolWrap").style.display = t === "arbol" ? "" : "none";
+  document.getElementById("tabHistoria").className = "tab" + (t === "historia" ? " activa" : "");
+  document.getElementById("tabArbol").className = "tab" + (t === "arbol" ? " activa" : "");
+}
+
+// ---------- init ----------
+const selPreset = document.getElementById("preset");
+PRESETS.forEach((p, i) => { const o = document.createElement("option"); o.value = i; o.textContent = p.nombre; selPreset.appendChild(o); });
+cargarPreset();
+</script>
+</body>
+</html>
