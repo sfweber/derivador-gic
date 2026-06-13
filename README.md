@@ -61,9 +61,9 @@ palabra válida.
 
 ## Cómo correrlo
 
-**Local (offline):** abrí `index.html` con doble clic. No usa internet para nada.
+**Online:** [sfweber.github.io/derivador-gic](https://sfweber.github.io/derivador-gic/) — corre en cualquier navegador, celular incluido. Nada que instalar.
 
-**GitHub Pages (para compartir con estudiantes):** Settings → Pages → Branch `main` / root.
+**Local (offline):** abrí `index.html` con doble clic. No usa internet para nada.
 
 ## Limitaciones conocidas
 
