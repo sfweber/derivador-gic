@@ -44,11 +44,18 @@ palabra válida.
   concepto central: derivaciones con distinto orden pueden dar el **mismo árbol** — el árbol
   abstrae el orden (la puerta a la idea de *ambigüedad*).
 - **Palabras generadas** — colección de las palabras que completaste con la gramática actual.
-- **Modo desafío** — escribís una palabra objetivo ("generá `aabcdd`") y te dice si llegaste.
+- **Modo desafío** — propone una palabra del lenguaje (obtenida por una derivación interna, de
+  2 a 8 símbolos) para que la generes con las teclas; al lograrlo avisa, y **"Ver una derivación"**
+  muestra una solución posible paso a paso.
+- **Modo práctica** — cuestionario teórico autocorregido **desde la gramática cargada**: cadena
+  mínima, pertenencia de `λ`, finitud, Forma Normal de Chomsky, símbolo distinguido y
+  cardinalidades. Todas las preguntas se muestran juntas y se corrigen al final.
 - **Presets** — las gramáticas de la práctica: `a*b*`, los ejercicios 1, 2a y 2b de la
   Práctica 3A (`aⁱbʲcʲdⁱ`, `aⁱcʲdᵏbⁱ`, `cⁱaᵏbᵏdʲ`), la gramática del ejercicio de CYK
   (Kozen) y `aⁿbⁿ`.
-- **Editor libre** — escribí tu propia gramática:
+- **Editor de gramática** — dos columnas con la flecha dibujada, **una fila por producción**
+  (no terminal · → · lado derecho), con botones para agregar/quitar producciones e insertar `λ`.
+  Un toggle **"editar como texto"** abre el modo crudo para pegar una gramática entera:
 
   ```
   S -> aS | Sb | λ
@@ -57,7 +64,8 @@ palabra válida.
 
   Acepta `->` o `→`, espacios dentro de las alternativas, y `λ` / `lambda` / `landa`.
   No terminales = mayúsculas (un carácter); terminales = minúsculas. La cadena vacía es **λ**
-  (notación de la cátedra — nunca ε).
+  (notación de la cátedra — nunca ε). Tanto los presets como la edición se activan con
+  **"Cargar gramática"** (el botón se resalta cuando hay cambios sin cargar).
 
 ## Cómo correrlo
 
@@ -75,8 +83,10 @@ palabra válida.
   variable, con árbol en vivo y deshacer. La diferencia es que JFLAP exige una **cadena
   objetivo** antes de empezar (parsing dirigido a meta); acá se genera **libre**, sin objetivo —
   la gramática como *generador* — y el modo desafío es opcional.
-- El modo desafío compara contra las palabras que **vos** generaste; no decide pertenencia
-  por sí mismo.
+- El modo desafío no decide pertenencia de una palabra cualquiera: la palabra a derivar la
+  **genera la propia herramienta** (por eso siempre pertenece al lenguaje y es derivable).
+- El modo práctica responde **solo** lo que se calcula de la gramática cargada (cadena mínima,
+  λ, finitud, FNC, cardinalidades); no incluye preguntas indecidibles como la ambigüedad.
 - Sin persistencia: al recargar la página se pierde la sesión.
 
 ## Estructura
