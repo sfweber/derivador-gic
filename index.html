@@ -20,6 +20,34 @@
   select, input[type=text], textarea { font-family: Consolas, monospace; font-size: 1em; padding: 6px 8px; border: 1px solid var(--icedk); border-radius: 5px; }
   textarea { width: 100%; min-height: 70px; }
 
+  /* editor estructurado de gramática (1 fila por producción) */
+  #editorFilas { margin-top: 10px; }
+  .gfila { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+  .gfila .nt-in { width: 2.8em; text-align: center; text-transform: uppercase; font-weight: bold; color: var(--navy); }
+  .gfila .flecha { color: var(--navy); font-size: 1.35em; font-weight: bold; user-select: none; margin: 0 2px; }
+  .gfila .rhs-in { flex: 1; max-width: 340px; }
+  .gfila button.mini { font-family: Consolas, monospace; font-size: 1em; line-height: 1; padding: 7px 10px;
+                       border: 1px solid var(--icedk); border-radius: 6px; background: white; color: var(--navy); cursor: pointer; }
+  .gfila button.mini:hover { background: var(--boxbg); }
+  .gfila button.mini.lam { color: var(--green); font-weight: bold; }
+  .gfila button.mini.del { color: var(--red); }
+  .gfila input::placeholder { color: #c3c8d4; font-weight: normal; }   /* texto guía gris claro */
+  .cab-cols { display: flex; gap: 8px; color: var(--gray); font-size: .82em; font-style: italic; margin-top: 4px; }
+  .cab-cols .c1 { width: 2.8em; text-align: center; }
+  a.toggle-txt { color: var(--navy); font-size: .9em; cursor: pointer; text-decoration: none; border-bottom: 1px dotted var(--icedk); }
+  a.toggle-txt:hover { background: var(--boxbg); }
+  /* barra de acciones de la gramática */
+  .barra-gram { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+  .grupo-cargar { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .grupo-cargar .hint { color: #C9750B; font-weight: bold; font-style: normal; }
+  button.btn-cargar { background: var(--navy); color: white; font-weight: bold; font-size: 1em;
+                      border: none; border-bottom: 3px solid var(--navydk); border-radius: 8px; padding: 10px 22px; cursor: pointer; transition: transform .05s; }
+  button.btn-cargar:hover { background: #2A337A; }
+  button.btn-cargar:active { transform: translateY(2px); border-bottom-width: 1px; }
+  button.btn-cargar.pendiente { background: #C9750B; border-bottom-color: #8A4F07; animation: pulsoCargar 1.4s ease-out infinite; }
+  button.btn-cargar.pendiente:hover { background: #B0670A; }
+  @keyframes pulsoCargar { 0% { box-shadow: 0 0 0 0 rgba(201,117,11,.45); } 70%, 100% { box-shadow: 0 0 0 7px rgba(201,117,11,0); } }
+
   /* la cadena en derivación */
   #cinta { font-family: Consolas, monospace; font-size: 2.2em; letter-spacing: .08em; padding: 18px 10px; min-height: 1.6em;
            display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
@@ -50,6 +78,31 @@
   .err { color: var(--red); font-weight: bold; }
   .hint { color: var(--gray); font-style: italic; font-size: .9em; }
   .fila { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  /* sector desafío */
+  .chk-desafio { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .chk-desafio input { width: 16px; height: 16px; cursor: pointer; }
+  .objetivo-chip { font-family: Consolas, monospace; font-weight: bold; font-size: 1.25em; letter-spacing: .06em;
+                   color: var(--navy); background: var(--boxbg); border: 1px solid var(--icedk); border-radius: 6px; padding: 2px 12px; }
+  #desafioSolucion { font-family: Consolas, monospace; font-size: 1.02em; line-height: 1.7; color: var(--navy);
+                     background: #FAFBFE; border: 1px solid var(--icedk); border-radius: 6px; padding: 8px 12px; }
+  #desafioSolucion:empty { display: none; }
+  /* trivia / práctica */
+  #triviaPregunta b, #triviaPregunta code { font-family: Consolas, monospace; color: var(--navy); }
+  .trivia-op { font-family: inherit; font-size: 1em; padding: 8px 16px; margin: 0 8px 8px 0; border: 1px solid var(--icedk);
+               border-radius: 6px; background: white; color: var(--navy); cursor: pointer; }
+  .trivia-op:hover:not(:disabled) { background: var(--boxbg); }
+  .trivia-op:disabled { cursor: default; opacity: .9; }
+  .trivia-op.bien { background: var(--greenbg); border-color: #8FB89A; color: var(--green); font-weight: bold; }
+  .trivia-op.mal  { background: #FBEAE8; border-color: #D8A9A2; color: var(--red); font-weight: bold; }
+  #triviaInput input[type=number] { width: 5em; }
+  /* cuestionario formal */
+  #cuestionario { margin: 4px 0 0; padding-left: 1.6em; }
+  #cuestionario li { margin-bottom: 14px; }
+  .cuest-q { margin-bottom: 6px; }
+  .cuest-in { margin-bottom: 4px; }
+  .cuest-in input[type=number] { width: 5em; }
+  label.cuest-op { margin-right: 16px; cursor: pointer; }
+  .cuest-fb { border-left: 3px solid var(--icedk); padding-left: 10px; margin-top: 4px; }
   footer { text-align: center; color: var(--gray); font-style: italic; font-size: .85em; padding: 10px 0 24px; }
 
   /* solapas historia / árbol */
@@ -83,14 +136,30 @@
   <div class="panel">
     <h2>Gramática</h2>
     <div class="fila">
+      <span class="hint">Empezá de un preset:</span>
       <select id="preset" onchange="cargarPreset()"></select>
-      <span class="hint">o escribila abajo (formato: <code>S -> aS | Sb | λ</code>; podés escribir <code>lambda</code>)</span>
     </div>
-    <textarea id="gramatica" spellcheck="false"></textarea>
-    <div style="margin-top:8px">
-      <button class="aux" onclick="aplicarGramatica()">Cargar gramática</button>
-      <span id="gramError" class="err"></span>
+
+    <!-- editor estructurado: 1 fila por producción -->
+    <div class="cab-cols"><span class="c1">No&nbsp;t.</span><span>Producción (un símbolo derecho por fila; usá λ para la cadena vacía)</span></div>
+    <div id="editorFilas"></div>
+
+    <div class="barra-gram">
+      <button class="aux" onclick="agregarFila()">+ producción</button>
+      <a class="toggle-txt" id="toggleTexto" onclick="toggleModoTexto(event)">✎ editar como texto</a>
+      <div class="grupo-cargar">
+        <span id="cargarHint" class="hint"></span>
+        <button class="btn-cargar" onclick="aplicarGramatica()">▶ Cargar gramática</button>
+      </div>
     </div>
+
+    <!-- modo texto (oculto por defecto) -->
+    <div id="modoTexto" style="display:none; margin-top:10px">
+      <textarea id="gramatica" spellcheck="false" oninput="tocadoTexto()"></textarea>
+      <span class="hint">formato: <code>S -> aS | Sb | λ</code> — una regla por renglón; podés escribir <code>lambda</code>. Se sincroniza con las filas.</span>
+    </div>
+
+    <div style="margin-top:8px"><span id="gramError" class="err"></span></div>
   </div>
 
   <div class="panel">
@@ -117,15 +186,36 @@
     </div>
   </div>
 
-  <div class="fila">
+  <div class="fila" style="align-items: stretch">
     <div class="panel" style="flex:1; min-width:300px">
-      <h2>Desafío <span class="hint">— ¿podés generar exactamente esta palabra?</span></h2>
-      <input type="text" id="objetivo" placeholder="ej: aabcdd" oninput="render()">
-      <span id="desafioMsg" style="margin-left:10px"></span>
+      <h2>Desafío</h2>
+      <label class="chk-desafio"><input type="checkbox" id="chkDesafio" onchange="toggleModoDesafio()"> <span>Modo desafío: derivar una palabra propuesta</span></label>
+      <div id="desafioOff" class="hint" style="margin-top:8px">Se propone una palabra del lenguaje cargado para derivarla aplicando las producciones.</div>
+      <div id="desafioActivo" style="display:none; margin-top:10px">
+        <div>Palabra a derivar: <span id="desafioObjetivoTxt" class="objetivo-chip">—</span></div>
+        <div id="desafioMsg" style="margin:8px 0; min-height:1.2em"></div>
+        <button class="aux" onclick="nuevoDesafio()">Otra palabra</button>
+        <button class="aux" onclick="verDerivacion()">Ver una derivación</button>
+        <div id="desafioSolucion" style="margin-top:10px"></div>
+      </div>
     </div>
     <div class="panel" style="flex:1; min-width:300px">
       <h2>Palabras que generaste</h2>
       <div id="palabras"><span class="hint" style="background:none;border:none;color:var(--gray)">todavía ninguna</span></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Cuestionario sobre la gramática cargada</h2>
+    <label class="chk-desafio"><input type="checkbox" id="chkPractica" onchange="toggleModoPractica()"> <span>Activar cuestionario teórico</span></label>
+    <div id="practicaOff" class="hint" style="margin-top:8px">Preguntas teóricas resueltas a partir de la gramática cargada (cadena mínima, pertenencia de λ, finitud, Forma Normal de Chomsky, símbolo distinguido, cardinalidades).</div>
+    <div id="practicaActivo" style="display:none; margin-top:10px">
+      <ol id="cuestionario"></ol>
+      <div class="barra-gram">
+        <button class="aux" id="btnNuevoCuest" onclick="nuevoCuestionario()">Nuevo cuestionario</button>
+        <button class="btn-cargar" id="btnCorregir" onclick="corregirCuestionario()" style="margin-left:auto">Corregir</button>
+      </div>
+      <div id="cuestResumen" style="margin-top:10px"></div>
     </div>
   </div>
 
@@ -211,19 +301,137 @@ function reiniciar() {
   render();
 }
 
+// ---------- editor estructurado de gramática (1 fila por producción) ----------
+// `filas` = [{lhs, rhs}], una por producción. El editor solo SERIALIZA al mismo
+// texto que ya consume parsearGramatica(); la lógica de derivación no se toca.
+let filas = [];
+let modoTextoVisible = false;
+let textoCargado = null;   // texto de la gramática que está corriendo (última cargada con éxito)
+
+function textoActual() {
+  return modoTextoVisible ? document.getElementById("gramatica").value : filasATexto();
+}
+
+// resalta el botón "Cargar gramática" cuando el editor difiere de lo que corre
+function actualizarBotonCargar() {
+  const btn = document.querySelector("button.btn-cargar");
+  const hint = document.getElementById("cargarHint");
+  const t = textoActual().trim();
+  const hayCambios = t !== "" && t !== (textoCargado || "").trim();
+  if (btn) btn.classList.toggle("pendiente", hayCambios);
+  if (hint) hint.textContent = hayCambios ? "cambios sin cargar →" : "";
+}
+
+function renderEditor() {
+  const cont = document.getElementById("editorFilas");
+  cont.innerHTML = "";
+  if (!filas.length) filas.push({ lhs: "", rhs: "" });
+  filas.forEach((f, i) => {
+    const row = document.createElement("div");
+    row.className = "gfila";
+
+    const nt = document.createElement("input");
+    nt.type = "text"; nt.className = "nt-in"; nt.maxLength = 1; nt.placeholder = "S"; nt.value = f.lhs;
+    nt.oninput = () => { f.lhs = nt.value.toUpperCase(); nt.value = f.lhs; tocado(); };
+
+    const fl = document.createElement("span"); fl.className = "flecha"; fl.textContent = "→";
+
+    const rhs = document.createElement("input");
+    rhs.type = "text"; rhs.className = "rhs-in"; rhs.placeholder = "aS   (o λ)"; rhs.value = f.rhs;
+    rhs.oninput = () => { f.rhs = rhs.value; tocado(); };
+
+    const lam = document.createElement("button");
+    lam.className = "mini lam"; lam.textContent = "λ"; lam.title = "cadena vacía";
+    lam.onclick = () => { f.rhs = "λ"; renderEditor(); tocado(); };
+
+    const del = document.createElement("button");
+    del.className = "mini del"; del.textContent = "×"; del.title = "borrar producción";
+    del.onclick = () => { filas.splice(i, 1); if (!filas.length) filas.push({ lhs: "", rhs: "" }); renderEditor(); tocado(); };
+
+    row.append(nt, fl, rhs, lam, del);
+    cont.appendChild(row);
+  });
+}
+
+function agregarFila() { filas.push({ lhs: "", rhs: "" }); renderEditor(); tocado(); }
+
+// edición manual → sincronizar texto, marcar "personalizada" y resaltar Cargar
+function tocado() { sincTextoDesdeFilas(); marcarPersonalizada(); actualizarBotonCargar(); }
+function tocadoTexto() { marcarPersonalizada(); actualizarBotonCargar(); }
+
+function filasATexto() {
+  const orden = [], mapa = {};
+  for (const f of filas) {
+    const l = (f.lhs || "").trim(); const r = (f.rhs || "").trim();
+    if (!l || r === "") continue;                 // fila incompleta: no serializar
+    if (!(l in mapa)) { mapa[l] = []; orden.push(l); }
+    mapa[l].push(r);
+  }
+  return orden.map(l => `${l} -> ${mapa[l].join(" | ")}`).join("\n");
+}
+
+function sincTextoDesdeFilas() {
+  document.getElementById("gramatica").value = filasATexto();
+}
+
+function textoAFilas(txt) {
+  const nuevas = [];
+  for (const linea of txt.split("\n").map(l => l.trim()).filter(l => l)) {
+    const m = linea.match(/^([A-Z])\s*(?:->|→)\s*(.+)$/);
+    if (!m) continue;
+    for (let alt of m[2].split("|")) {
+      alt = alt.replace(/\s+/g, "");
+      if (/^(λ|lambda|landa)$/i.test(alt)) alt = "λ";
+      if (alt !== "") nuevas.push({ lhs: m[1], rhs: alt });
+    }
+  }
+  filas = nuevas.length ? nuevas : [{ lhs: "", rhs: "" }];
+}
+
+function toggleModoTexto(ev) {
+  if (ev) ev.preventDefault();
+  modoTextoVisible = !modoTextoVisible;
+  document.getElementById("modoTexto").style.display = modoTextoVisible ? "" : "none";
+  document.getElementById("toggleTexto").textContent = modoTextoVisible ? "▴ ocultar texto" : "✎ editar como texto";
+  if (modoTextoVisible) {
+    sincTextoDesdeFilas();                         // mostrar el texto al día
+  } else {
+    textoAFilas(document.getElementById("gramatica").value);   // al volver, filas desde texto
+    renderEditor();
+  }
+  actualizarBotonCargar();
+}
+
 // ---------- UI ----------
+function marcarPersonalizada() {
+  document.getElementById("preset").value = "custom";
+}
+
 function cargarPreset() {
-  document.getElementById("gramatica").value = PRESETS[+document.getElementById("preset").value].texto;
-  aplicarGramatica();
+  const v = document.getElementById("preset").value;
+  if (v === "custom") return;                      // no pisar lo que el usuario armó
+  // solo vuelca el preset en el editor; NO se activa hasta apretar "Cargar gramática"
+  textoAFilas(PRESETS[+v].texto);
+  renderEditor();
+  sincTextoDesdeFilas();
+  actualizarBotonCargar();    // el preset volcado difiere de lo que corre → resaltar
 }
 
 function aplicarGramatica() {
+  // el textarea es la fuente a parsear: en modo estructurado ya viene sincronizado
+  // desde las filas (cada edición llama a sincTextoDesdeFilas); en modo texto es la
+  // edición directa y refrescamos las filas para que el toggle de vuelta sea coherente.
+  if (modoTextoVisible) textoAFilas(document.getElementById("gramatica").value);
   const err = document.getElementById("gramError");
   try {
     G = parsearGramatica(document.getElementById("gramatica").value);
     err.textContent = "";
     palabras = new Set();   // las palabras generadas son DE esta gramática
+    textoCargado = document.getElementById("gramatica").value;   // queda como referencia
     reiniciar();
+    actualizarBotonCargar();   // ya coincide → apagar el resalte
+    if (modoDesafio) nuevoDesafio();   // objetivo nuevo para la gramática nueva
+    if (modoPractica) nuevoCuestionario();   // cuestionario nuevo para la gramática nueva
   } catch (e) { err.textContent = "⚠ " + e; }
 }
 
@@ -231,6 +439,18 @@ function render() {
   // cinta
   const cinta = document.getElementById("cinta");
   cinta.innerHTML = "";
+  if (!G) {   // todavía no se cargó ninguna gramática
+    cinta.innerHTML = '<span class="hint" style="font-size:.5em">— escribí una producción y tocá «▶ Cargar gramática» —</span>';
+    document.getElementById("estado").innerHTML = "";
+    document.getElementById("teclado").innerHTML = "";
+    document.getElementById("historia").innerHTML = "";
+    document.getElementById("arbol").innerHTML = "";
+    document.getElementById("palabras").innerHTML = '<span class="hint" style="background:none;border:none;color:var(--gray)">todavía ninguna</span>';
+    document.getElementById("desafioMsg").innerHTML = modoDesafio ? '<span class="hint">Cargue una gramática para proponer una palabra.</span>' : "";
+    document.getElementById("desafioObjetivoTxt").textContent = "—";
+    document.getElementById("desafioSolucion").innerHTML = "";
+    return;
+  }
   if (forma.length === 0) {
     cinta.innerHTML = '<span class="lambda-fin">λ</span><span style="font-size:.5em;color:var(--green);margin-left:12px">(la cadena vacía: ¡palabra terminada!)</span>';
   } else {
@@ -273,13 +493,17 @@ function render() {
   pal.innerHTML = palabras.size
     ? [...palabras].map(w => `<span>${w}</span>`).join("")
     : '<span class="hint" style="background:none;border:none;color:var(--gray)">todavía ninguna</span>';
-  // desafío
-  const objetivo = document.getElementById("objetivo").value.trim();
+  // desafío (modo: palabra aleatoria a derivar)
+  document.getElementById("desafioObjetivoTxt").textContent = desafioObjetivo || "—";
+  document.getElementById("desafioSolucion").innerHTML = (solucionVisible && desafioPasos)
+    ? '<div class="hint" style="margin-bottom:4px">Una derivación posible (expandiendo siempre el no terminal más a la izquierda):</div>' + derivacionTexto(desafioPasos)
+    : "";
   const msg = document.getElementById("desafioMsg");
-  if (!objetivo) msg.textContent = "";
-  else if (palabras.has(objetivo)) msg.innerHTML = '<span class="ok">✓ ¡La generaste!</span>';
-  else if (!nts.length && forma.join("") !== objetivo) msg.innerHTML = '<span class="err">esa no fue — reiniciá y probá otra secuencia de teclas</span>';
-  else msg.innerHTML = '<span class="hint">en camino…</span>';
+  if (!modoDesafio) msg.textContent = "";
+  else if (!desafioObjetivo) msg.innerHTML = '<span class="hint">No se pudo generar una palabra para esta gramática. Pruebe «Otra palabra».</span>';
+  else if (palabras.has(desafioObjetivo) || (!nts.length && forma.join("") === desafioObjetivo)) msg.innerHTML = '<span class="ok">Correcto: la palabra fue derivada.</span>';
+  else if (!nts.length) msg.innerHTML = '<span class="err">La palabra obtenida no coincide con la propuesta.</span> <span class="hint">Reinicie e intente otra secuencia.</span>';
+  else msg.innerHTML = '<span class="hint">Derivación en curso.</span>';
 }
 
 // ---------- árbol de derivación ----------
@@ -373,10 +597,268 @@ function verTab(t) {
   document.getElementById("tabArbol").className = "tab" + (t === "arbol" ? " activa" : "");
 }
 
+// ---------- modo desafío: palabra aleatoria a derivar ----------
+// La palabra NO se chequea por pertenencia: se OBTIENE de una derivación aleatoria
+// interna (la gramática como generador), así siempre es del lenguaje y siempre
+// resoluble. Guardamos los pasos para poder "ver una derivación".
+let modoDesafio = false;
+let desafioObjetivo = null;   // string objetivo a generar
+let desafioPasos = null;      // [{sel, prod}] de la solución
+let solucionVisible = false;
+
+function contarNT(rhs) { let n = 0; for (const c of rhs) if (esNT(c)) n++; return n; }
+
+function derivacionAzar(maxLen, maxPasos = 90) {
+  let f = [G.start];
+  const pasos = [];
+  let guard = 0;
+  while (true) {
+    const nts = f.map((c, i) => esNT(c) ? i : -1).filter(i => i >= 0);
+    if (!nts.length) break;                          // terminó → palabra
+    if (++guard > maxPasos || f.length > maxLen * 3) return null;   // no cierra → descartar
+    const sel = nts[0];                              // cursor de más a la izquierda
+    let cands = G.prods.filter(p => p.lhs === f[sel]);
+    if (!cands.length) return null;
+    const term = f.filter(c => !esNT(c)).length;
+    if (term >= maxLen) {                            // ya largo → forzar a cerrar
+      const minNT = Math.min(...cands.map(p => contarNT(p.rhs)));
+      cands = cands.filter(p => contarNT(p.rhs) === minNT);
+    }
+    const prod = cands[Math.floor(Math.random() * cands.length)];
+    f = f.slice(0, sel).concat(prod.rhs.split(""), f.slice(sel + 1));
+    pasos.push({ sel, prod });
+  }
+  return { palabra: f.join(""), pasos };
+}
+
+function generarPalabraAzar(minLen = 2, maxLen = 8, intentos = 600) {
+  if (!G) return null;
+  const centro = (minLen + maxLen) / 2;
+  let best = null;
+  for (let i = 0; i < intentos; i++) {
+    const r = derivacionAzar(maxLen);
+    if (!r) continue;
+    const L = r.palabra.length;
+    if (L >= minLen && L <= maxLen) return r;        // en rango → listo
+    if (L >= 1 && (!best || Math.abs(L - centro) < Math.abs(best.palabra.length - centro))) best = r;
+  }
+  return best;   // fallback: lo más cercano al rango
+}
+
+function derivacionTexto(pasos) {
+  let f = [G.start];
+  const out = [f.join("")];
+  for (const { sel, prod } of pasos) {
+    f = f.slice(0, sel).concat(prod.rhs.split(""), f.slice(sel + 1));
+    out.push(f.join("") === "" ? "λ" : f.join(""));
+  }
+  return out.map((s, i) => (i === 0 ? "&nbsp;&nbsp;" : "⇒ ") + s +
+    (pasos[i - 1] ? `&nbsp;&nbsp;<span class="regla" style="color:var(--gray);font-size:.85em">(${pasos[i - 1].prod.label})</span>` : "")).join("<br>");
+}
+
+function toggleModoDesafio() {
+  modoDesafio = document.getElementById("chkDesafio").checked;
+  document.getElementById("desafioActivo").style.display = modoDesafio ? "" : "none";
+  document.getElementById("desafioOff").style.display = modoDesafio ? "none" : "";
+  if (modoDesafio) nuevoDesafio();
+  else render();
+}
+
+function nuevoDesafio() {
+  solucionVisible = false;
+  const r = G ? generarPalabraAzar(2, 8) : null;
+  desafioObjetivo = r ? r.palabra : null;
+  desafioPasos = r ? r.pasos : null;
+  if (G) reiniciar();   // empezar de cero para resolverla
+  else render();
+}
+
+function verDerivacion() {
+  if (!desafioPasos) return;
+  solucionVisible = !solucionVisible;
+  render();
+}
+
+// ---------- modo práctica: preguntas teóricas auto-corregidas desde la gramática ----------
+// Helpers PUROS sobre G (sin DOM). Todo se CALCULA de la gramática cargada → respuestas exactas.
+function minLenPorNT(G) {                       // longitud mínima de palabra derivable por no terminal
+  const min = {}; for (const A of G.nts) min[A] = Infinity;
+  let ch = true;
+  while (ch) { ch = false;
+    for (const p of G.prods) {
+      let len = 0, ok = true;
+      for (const c of p.rhs) { if (G.nts.has(c)) { if (min[c] === Infinity) { ok = false; break; } len += min[c]; } else len += 1; }
+      if (ok && len < min[p.lhs]) { min[p.lhs] = len; ch = true; }
+    }
+  }
+  return min;
+}
+function longitudMinima(G) { return minLenPorNT(G)[G.start]; }
+function anulable(G) {                          // ¿S deriva λ?
+  const nul = new Set(); let ch = true;
+  while (ch) { ch = false;
+    for (const p of G.prods) {
+      if (nul.has(p.lhs)) continue;
+      let ok = true; for (const c of p.rhs) { if (G.nts.has(c) && nul.has(c)) continue; ok = false; break; }
+      if (ok) { nul.add(p.lhs); ch = true; }
+    }
+  }
+  return nul.has(G.start);
+}
+function utilesNT(G) {                           // no terminales productivos ∩ alcanzables desde S
+  const min = minLenPorNT(G);
+  const prod = new Set([...G.nts].filter(A => min[A] < Infinity));
+  const reach = new Set(), st = [G.start];
+  while (st.length) { const A = st.pop(); if (reach.has(A)) continue; reach.add(A);
+    for (const p of G.prods) if (p.lhs === A) for (const c of p.rhs) if (G.nts.has(c) && !reach.has(c)) st.push(c); }
+  return new Set([...G.nts].filter(A => prod.has(A) && reach.has(A)));
+}
+function esInfinito(G) {                          // infinito ⟺ ciclo en el grafo de NT útiles
+  const U = utilesNT(G); if (!U.has(G.start)) return false;
+  const adj = {}; for (const A of U) adj[A] = [];
+  for (const p of G.prods) {
+    if (!U.has(p.lhs)) continue;
+    let usable = true; for (const c of p.rhs) if (G.nts.has(c) && !U.has(c)) { usable = false; break; }
+    if (!usable) continue;
+    for (const c of p.rhs) if (U.has(c)) adj[p.lhs].push(c);
+  }
+  const color = {}; let cyc = false;
+  for (const A of U) { if (color[A] || cyc) continue;
+    (function dfs(u) { color[u] = 1;
+      for (const v of adj[u]) { if (color[v] === 1) { cyc = true; return; } if (!color[v]) { dfs(v); if (cyc) return; } }
+      color[u] = 2; })(A);
+  }
+  return cyc;
+}
+function enFNC(G) {                              // ¿A→BC o A→a (+ opcional S→λ)?
+  for (const p of G.prods) {
+    if (p.lhs === G.start && p.rhs === "") continue;
+    if (p.rhs.length === 1 && !G.nts.has(p.rhs)) continue;
+    if (p.rhs.length === 2 && G.nts.has(p.rhs[0]) && G.nts.has(p.rhs[1])) continue;
+    return false;
+  }
+  return true;
+}
+function terminalesDe(G) { const t = new Set(); for (const p of G.prods) for (const c of p.rhs) if (!G.nts.has(c)) t.add(c); return t; }
+
+let modoPractica = false;
+let preguntas = [];          // lista de preguntas del cuestionario
+let cuestCorregido = false;
+
+// una pregunta por cada tipo aplicable a la gramática G (todas, en orden)
+function generarCuestionario() {
+  if (!G) return [];
+  const NT = [...G.nts];
+  const qs = [];
+  const min = longitudMinima(G);
+  if (min !== Infinity) qs.push({ tipo: 'min', formato: 'numero',
+    html: 'Indique la longitud de la palabra más corta (cadena mínima) que genera la gramática.',
+    correcta: min,
+    explica: min === 0 ? 'La cadena mínima es λ (la cadena vacía), de longitud 0.'
+                       : 'La cadena mínima tiene longitud ' + min + '.' });
+  { const a = anulable(G); qs.push({ tipo: 'lambda', formato: 'siNo',
+    html: '¿La cadena vacía λ pertenece al lenguaje de la gramática?', correcta: a,
+    explica: a ? 'Sí: desde el símbolo distinguido se deriva λ (equivale a que la cadena mínima tenga longitud 0).'
+               : 'No: ninguna derivación desde el símbolo distinguido produce λ; toda palabra tiene al menos un símbolo.' }); }
+  { const inf = esInfinito(G); qs.push({ tipo: 'fininf', formato: 'opcion', opciones: ['finito', 'infinito'],
+    html: 'El lenguaje generado, ¿es finito o infinito?', correcta: inf ? 'infinito' : 'finito',
+    explica: inf ? 'Infinito: existe recursividad útil, es decir un no terminal que reaparece y permite que las palabras crezcan sin cota.'
+                 : 'Finito: no hay recursividad que permita crecimiento sin cota; el lenguaje tiene una cantidad finita de palabras.' }); }
+  { const f = enFNC(G); qs.push({ tipo: 'fnc', formato: 'siNo',
+    html: '¿La gramática está en Forma Normal de Chomsky?', correcta: f,
+    explica: 'En FNC toda producción tiene la forma A→BC (dos no terminales) o A→a (un terminal), admitiéndose S→λ. ' + (f ? 'La gramática lo cumple.' : 'La gramática tiene al menos una producción que no respeta esa forma.') + ' Es el requisito para aplicar el algoritmo CYK.' }); }
+  if (NT.length >= 2) qs.push({ tipo: 'start', formato: 'opcion', opciones: NT.slice().sort(),
+    html: '¿Cuál es el símbolo distinguido (inicial) de la gramática?', correcta: G.start,
+    explica: 'El símbolo distinguido es ' + G.start + ': el no terminal por el que comienza toda derivación.' });
+  qs.push({ tipo: 'nnt', formato: 'numero',
+    html: 'Indique la cantidad de no terminales de la gramática.', correcta: G.nts.size,
+    explica: 'La gramática tiene ' + G.nts.size + ' no terminales: ' + NT.join(', ') + '.' });
+  { const T = [...terminalesDe(G)]; qs.push({ tipo: 'term', formato: 'numero',
+    html: 'Indique la cantidad de terminales (símbolos del alfabeto) de la gramática.', correcta: T.length,
+    explica: 'La gramática usa ' + T.length + ' terminales: ' + T.join(', ') + '.' }); }
+  qs.push({ tipo: 'nprod', formato: 'numero',
+    html: 'Indique la cantidad de producciones, contando cada alternativa (separada por «|») por separado.', correcta: G.prods.length,
+    explica: 'Contando cada alternativa como una producción, la gramática tiene ' + G.prods.length + '.' });
+  return qs;
+}
+
+function fmtCorrecta(q) { return q.formato === 'siNo' ? (q.correcta ? 'Sí' : 'No') : q.correcta; }
+
+function renderCuestionario() {
+  if (!modoPractica) return;
+  const ol = document.getElementById("cuestionario");
+  const res = document.getElementById("cuestResumen");
+  const btnC = document.getElementById("btnCorregir");
+  if (!preguntas.length) {
+    ol.innerHTML = '<li class="hint" style="list-style:none">' + (G ? '' : 'Cargue una gramática para generar el cuestionario.') + '</li>';
+    res.innerHTML = ""; btnC.disabled = !G; return;
+  }
+  btnC.disabled = cuestCorregido;
+  ol.innerHTML = preguntas.map((q, i) => {
+    let inputs;
+    if (!cuestCorregido) {
+      if (q.formato === 'numero') inputs = `<input type="number" step="1" data-q="${i}" class="cuest-num">`;
+      else { const ops = q.formato === 'siNo' ? [['Sí', 'si'], ['No', 'no']] : q.opciones.map(o => [o, o]);
+        inputs = ops.map(([lbl, val]) => `<label class="cuest-op"><input type="radio" name="q${i}" value="${val}"> ${lbl}</label>`).join(""); }
+    } else {
+      inputs = '<span class="hint">respuesta: <b>' + (q.eligioLbl ? q.eligioLbl : '(en blanco)') + '</b></span>';
+    }
+    const fb = cuestCorregido
+      ? `<div class="cuest-fb">${q.correcto ? '<span class="ok">Correcto.</span>' : '<span class="err">Incorrecto.</span> <span class="hint">Respuesta correcta: <b>' + fmtCorrecta(q) + '</b>.</span>'}<div class="hint" style="margin-top:2px">${q.explica}</div></div>`
+      : '';
+    return `<li><div class="cuest-q">${q.html}</div><div class="cuest-in">${inputs}</div>${fb}</li>`;
+  }).join("");
+  res.innerHTML = cuestCorregido
+    ? '<b>Resultado: ' + preguntas.filter(q => q.correcto).length + '/' + preguntas.length + ' correctas.</b>'
+    : "";
+}
+
+function nuevoCuestionario() {
+  preguntas = G ? generarCuestionario() : [];
+  cuestCorregido = false;
+  renderCuestionario();
+}
+
+function corregirCuestionario() {
+  if (cuestCorregido || !preguntas.length) return;
+  preguntas.forEach((q, i) => {
+    if (q.formato === 'numero') {
+      const el = document.querySelector(`input[data-q="${i}"]`);
+      const v = el ? el.value.trim() : '';
+      const n = parseInt(v, 10);
+      q.eligioLbl = v === '' ? '' : String(n);
+      q.correcto = (n === q.correcta);
+    } else {
+      const sel = document.querySelector(`input[name="q${i}"]:checked`);
+      const v = sel ? sel.value : '';
+      if (q.formato === 'siNo') { q.eligioLbl = v === 'si' ? 'Sí' : (v === 'no' ? 'No' : ''); q.correcto = ((v === 'si') === q.correcta); }
+      else { q.eligioLbl = v; q.correcto = (v === q.correcta); }
+    }
+  });
+  cuestCorregido = true;
+  renderCuestionario();
+}
+
+function toggleModoPractica() {
+  modoPractica = document.getElementById("chkPractica").checked;
+  document.getElementById("practicaActivo").style.display = modoPractica ? "" : "none";
+  document.getElementById("practicaOff").style.display = modoPractica ? "none" : "";
+  if (modoPractica) nuevoCuestionario();
+}
+
 // ---------- init ----------
 const selPreset = document.getElementById("preset");
+const optCustom = document.createElement("option");
+optCustom.value = "custom"; optCustom.textContent = "✎ personalizada (a mano)";
+selPreset.appendChild(optCustom);
 PRESETS.forEach((p, i) => { const o = document.createElement("option"); o.value = i; o.textContent = p.nombre; selPreset.appendChild(o); });
-cargarPreset();
+// arrancar en personalizada con UNA producción vacía; no se activa hasta "Cargar gramática"
+selPreset.value = "custom";
+filas = [{ lhs: "", rhs: "" }];
+renderEditor();
+G = null;
+render();
+actualizarBotonCargar();   // editor vacío → botón quieto
 </script>
 </body>
 </html>

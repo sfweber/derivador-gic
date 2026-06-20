@@ -10,3 +10,6 @@ Thumbs.db
 
 # Logs / temporales
 *.log
+
+# Preview descartable de UI (no publicar)
+preview.html
