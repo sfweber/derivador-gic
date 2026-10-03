@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Derivador GIC — el cursor y las teclas</title>
+<title>Derivador de gramáticas — el cursor y las teclas</title>
 <style>
   :root {
     --navy: #1E2761; --navydk: #16193F; --ice: #CADCFC; --icedk: #8FA8D6;
@@ -23,7 +23,9 @@
   /* editor estructurado de gramática (1 fila por producción) */
   #editorFilas { margin-top: 10px; }
   .gfila { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
-  .gfila .nt-in { width: 2.8em; text-align: center; text-transform: uppercase; font-weight: bold; color: var(--navy); }
+  .gfila .nt-in { width: auto; min-width: 2.8em; max-width: 10em; text-align: center; font-weight: bold; color: var(--navy); }
+  .gfila .ang { color: var(--icedk); font-weight: bold; font-family: Consolas, monospace; }
+  .gfila .flecha.bnf { font-size: 1em; }
   .gfila .flecha { color: var(--navy); font-size: 1.35em; font-weight: bold; user-select: none; margin: 0 2px; }
   .gfila .rhs-in { flex: 1; max-width: 340px; }
   .gfila button.mini { font-family: Consolas, monospace; font-size: 1em; line-height: 1; padding: 7px 10px;
@@ -57,6 +59,55 @@
   .nt.sel { background: var(--navy); color: white; border-color: var(--navy); animation: blink 1.1s step-end infinite; }
   @keyframes blink { 50% { background: var(--ice); color: var(--navy); } }
   .lambda-fin { color: var(--green); }
+  .nt.largo { font-size: .5em; padding: 0 .4em; vertical-align: middle; }
+
+  /* solapas de tipo declarado */
+  .tipo-tabs { display: flex; gap: 8px; margin: 2px 0 12px; }
+  button.tipo-tab { font-size: .95em; padding: 8px 16px; border: 2px solid var(--icedk); border-radius: 8px;
+                    background: white; color: var(--navy); cursor: pointer; font-family: inherit; }
+  button.tipo-tab:hover { background: var(--boxbg); }
+  button.tipo-tab.activa { background: var(--navy); color: white; border-color: var(--navy); font-weight: bold; }
+  .tipo-tabs .que { color: var(--gray); font-style: italic; font-size: .85em; align-self: center; margin-left: 6px; }
+
+  /* veredicto por producción, en vivo (sólo en modo tipo 3) */
+  .gfila.mal .rhs-in { border-color: var(--red); background: #FBEAE8; }
+  .gfila.ojo .rhs-in { border-color: #C9750B; background: #FFF4E5; }
+  .fila-msg { font-size: .82em; font-style: italic; }
+  .gfila.mal .fila-msg { color: var(--red); }
+  .gfila.ojo .fila-msg { color: #8A4F07; }
+
+  /* rechazo al cargar en modo tipo 3 */
+  #gramRechazo { margin-top: 10px; border: 1px solid #D8A9A2; background: #FBEAE8; border-radius: 8px; padding: 10px 14px; }
+  #gramRechazo b { color: var(--red); }
+  #gramRechazo .formas { font-family: Consolas, monospace; color: var(--navy); }
+  #gramRechazo button { margin-top: 8px; font-family: inherit; font-size: .95em; padding: 7px 14px;
+                        border: 1px solid var(--icedk); border-radius: 6px; background: white; color: var(--navy); cursor: pointer; }
+  #gramRechazo button:hover { background: var(--boxbg); }
+
+  /* leyenda de alcance: qué clasifica esta herramienta */
+  .leyenda-alcance { color: var(--gray); font-style: italic; font-size: .85em; margin-top: 6px; }
+  .nota-preset { display: block; margin-top: 8px; padding: 8px 12px; border-left: 4px solid var(--navy); background: var(--boxbg);
+    border-radius: 0 6px 6px 0; font-size: .9em; color: var(--navydk); }
+  .nota-preset b { color: var(--navy); }
+  .nota-preset code { font-family: Consolas, monospace; }
+
+  /* jerarquía de Chomsky */
+  #jerarquia svg { display: block; margin-top: 10px; max-width: 100%; }
+  .jq-caja { fill: none; stroke: var(--icedk); stroke-width: 1.5; }
+  .jq-caja.dentro { stroke: var(--navy); stroke-width: 2; }
+  .jq-rot { font-family: Calibri, 'Segoe UI', sans-serif; font-size: 12px; fill: var(--gray); }
+  .jq-rot.dentro { fill: var(--navy); font-weight: bold; }
+  .jq-punto { fill: var(--navy); }
+  .jq-punto-rot { font-family: Consolas, monospace; font-size: 12px; font-weight: bold; fill: var(--navy); }
+
+  /* badge de clasificación + la misma gramática en la otra notación */
+  .badge { display: inline-block; margin-top: 8px; padding: 6px 12px; border-radius: 6px; font-size: .92em;
+           border: 1px solid var(--icedk); background: var(--boxbg); color: var(--navy); }
+  .badge.t3 { background: var(--greenbg); border-color: #8FB89A; color: var(--green); }
+  .badge.mixta { background: #FFF4E5; border-color: #E2B778; color: #8A4F07; }
+  #otraNotacion { margin-top: 10px; }
+  #otraNotacionTxt { font-family: Consolas, monospace; font-size: 1em; background: var(--boxbg);
+                     border: 1px solid var(--icedk); border-radius: 6px; padding: 8px 12px; margin: 4px 0 0; overflow-x: auto; }
 
   /* teclado de producciones */
   #teclado { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -114,27 +165,33 @@
   /* árbol de derivación (SVG) */
   #arbol { overflow-x: auto; }
   #arbol svg { display: block; margin: 4px auto; }
-  .tnodo circle { fill: white; stroke: var(--icedk); stroke-width: 1.5; }
+  .tnodo rect { fill: white; stroke: var(--icedk); stroke-width: 1.5; }
   .tnodo text { font-family: Consolas, monospace; font-size: 15px; font-weight: bold; fill: var(--navy);
                 text-anchor: middle; dominant-baseline: central; }
-  .tnodo.nt circle { fill: var(--ice); cursor: pointer; }
+  .tnodo.nt rect { fill: var(--ice); cursor: pointer; }
   .tnodo.nt text { cursor: pointer; }
-  .tnodo.ntsel circle { fill: var(--navy); stroke: var(--navy); }
+  .tnodo.ntsel rect { fill: var(--navy); stroke: var(--navy); }
   .tnodo.ntsel text { fill: white; }
-  .tnodo.lam circle { fill: var(--greenbg); stroke: #8FB89A; }
+  .tnodo.lam rect { fill: var(--greenbg); stroke: #8FB89A; }
   .tnodo.lam text { fill: var(--green); }
   .tarista { stroke: var(--icedk); stroke-width: 1.5; }
+  .tarista.liana { stroke: var(--navy); stroke-width: 2.5; }
 </style>
 </head>
 <body>
 <header>
-  <h1>Derivador GIC — el cursor y las teclas</h1>
-  <p>Los no terminales son cursores; cada producción es una tecla. Apretá teclas hasta que no queden cursores: esa es tu palabra.</p>
+  <h1>Derivador de gramáticas — el cursor y las teclas</h1>
+  <p>Gramáticas regulares (tipo 3) e independientes de contexto (tipo 2), en notación de flechas o BNF. Los no terminales son cursores; cada producción es una tecla. Apretá teclas hasta que no queden cursores: esa es tu palabra.</p>
 </header>
 <main>
 
   <div class="panel">
     <h2>Gramática</h2>
+    <div class="tipo-tabs">
+      <button class="tipo-tab activa" id="tab3" onclick="cambiarTipo(3)">Tipo 3 · regular</button>
+      <button class="tipo-tab" id="tab2" onclick="cambiarTipo(2)">Tipo 2 · libre de contexto</button>
+      <span class="que" id="tipoQue"></span>
+    </div>
     <div class="fila">
       <span class="hint">Empezá de un preset:</span>
       <select id="preset" onchange="cargarPreset()"></select>
@@ -147,6 +204,7 @@
     <div class="barra-gram">
       <button class="aux" onclick="agregarFila()">+ producción</button>
       <a class="toggle-txt" id="toggleTexto" onclick="toggleModoTexto(event)">✎ editar como texto</a>
+      <a class="toggle-txt" id="toggleNotacion" onclick="toggleNotacionEditor(event)">⇄ escribir en BNF</a>
       <div class="grupo-cargar">
         <span id="cargarHint" class="hint"></span>
         <button class="btn-cargar" onclick="aplicarGramatica()">▶ Cargar gramática</button>
@@ -156,10 +214,19 @@
     <!-- modo texto (oculto por defecto) -->
     <div id="modoTexto" style="display:none; margin-top:10px">
       <textarea id="gramatica" spellcheck="false" oninput="tocadoTexto()"></textarea>
-      <span class="hint">formato: <code>S -> aS | Sb | λ</code> — una regla por renglón; podés escribir <code>lambda</code>. Se sincroniza con las filas.</span>
+      <span class="hint">una regla por renglón, en cualquiera de las dos notaciones: <code>S -> aS | Sb | λ</code> o <code>&lt;Numero&gt; ::= &lt;Signo&gt;&lt;Digito&gt;</code>. Podés escribir <code>lambda</code>. Se sincroniza con las filas.</span>
     </div>
 
     <div style="margin-top:8px"><span id="gramError" class="err"></span></div>
+    <div id="gramRechazo" style="display:none"></div>
+    <div id="gramBadge"></div>
+    <div id="presetNota"></div>
+    <div id="jerarquia"></div>
+    <p class="leyenda-alcance">Esta herramienta clasifica la <strong>gramática</strong> por la forma de sus producciones. No dice nada sobre el lenguaje que genera.</p>
+    <div id="otraNotacion" style="display:none">
+      <span class="hint" id="otraNotacionTit"></span>
+      <pre id="otraNotacionTxt"></pre>
+    </div>
   </div>
 
   <div class="panel">
@@ -182,6 +249,7 @@
     <div id="historia"></div>
     <div id="arbolWrap" style="display:none">
       <div id="arbol"></div>
+      <p id="arbolLiana" class="hint" style="display:none"></p>
       <p class="hint">Derivaciones distintas (el orden en que expandís los cursores) pueden dar el <strong>mismo árbol</strong> — el árbol abstrae el orden. Si una palabra tiene dos árboles distintos, la gramática es <strong>ambigua</strong>.</p>
     </div>
   </div>
@@ -208,7 +276,7 @@
   <div class="panel">
     <h2>Cuestionario sobre la gramática cargada</h2>
     <label class="chk-desafio"><input type="checkbox" id="chkPractica" onchange="toggleModoPractica()"> <span>Activar cuestionario teórico</span></label>
-    <div id="practicaOff" class="hint" style="margin-top:8px">Preguntas teóricas resueltas a partir de la gramática cargada (cadena mínima, pertenencia de λ, finitud, Forma Normal de Chomsky, símbolo distinguido, cardinalidades).</div>
+    <div id="practicaOff" class="hint" style="margin-top:8px">Preguntas teóricas resueltas a partir de la gramática cargada (cadena mínima, pertenencia de λ, recursividad, finitud, forma de la gramática (lineal a derecha / a izquierda), Forma Normal de Chomsky, símbolo distinguido, cardinalidades).</div>
     <div id="practicaActivo" style="display:none; margin-top:10px">
       <ol id="cuestionario"></ol>
       <div class="barra-gram">
@@ -220,18 +288,42 @@
   </div>
 
 </main>
-<footer>Herramienta educativa por <strong>Federico Weber</strong> · Autómatas y Gramáticas · UNLaM (DIIT) — material didáctico de práctica (Unidad 3A) · La cadena vacía se escribe λ<br>
-v0.2 <strong>beta</strong> — herramienta demostrativa con ejemplos de la práctica; puede contener errores. No reemplaza la teoría ni a JFLAP.</footer>
+<footer>Herramienta educativa por <strong>Federico Weber</strong> · Autómatas y Gramáticas · UNLaM (DIIT) — material didáctico de práctica (Unidades 2A y 3A) · La cadena vacía se escribe λ<br>
+v0.4 <strong>beta</strong> — herramienta demostrativa con ejemplos de la práctica; puede contener errores. No reemplaza la teoría ni a JFLAP.</footer>
 
 <script>
 // ---------- presets de la práctica ----------
 const PRESETS = [
-  { nombre: "Clase: S → aS | Sb | λ  (a*b*)", texto: "S -> aS | Sb | λ" },
-  { nombre: "Ej 1: S → aSd | A …", texto: "S -> aSd | A\nA -> bAc | λ" },
-  { nombre: "Ej 2a: S → aSb | A …", texto: "S -> aSb | A\nA -> cA | Ad | λ" },
-  { nombre: "Ej 2b: S → cS | Sd | A …", texto: "S -> cS | Sd | A\nA -> aAb | λ" },
-  { nombre: "CYK (libro): S→AB|BA|SS|AC|BD …", texto: "S -> AB | BA | SS | AC | BD\nA -> a\nB -> b\nC -> SB\nD -> SA" },
-  { nombre: "aⁿbⁿ (no regular): S → aSb | λ", texto: "S -> aSb | λ" },
+  // --- Unidad 2A: lenguajes regulares. G1/G2 (slide 19) son gramáticas regulares; los dos
+  // ejemplos BNF (slides 17 y 24) son GIC que generan lenguajes regulares — la nota lo explica. ---
+  { unidad: "U2A", tipo: 3, notacion: "flechas", nombre: "G1 lineal a derecha: S → λ | aA …   (aa)*",
+    texto: "S -> λ | aA\nA -> aB | a\nB -> aA" },
+  { unidad: "U2A", tipo: 3, notacion: "flechas", nombre: "G2 lineal a izquierda: S → λ | Ca …   (aa)*",
+    texto: "S -> λ | Ca\nC -> Da | a\nD -> Ca" },
+  // índices INDEPENDIENTES: cada bloque crece por su cuenta, en su propia regla.
+  // Genera el mismo lenguaje que el preset «Clase» de U3A, que mezcla las dos direcciones.
+  // λ sólo desde S (forma estricta de la cátedra): B cierra con «b», no con λ.
+  { unidad: "U2A", tipo: 3, notacion: "flechas", nombre: "aⁿbᵐ índices independientes (lineal a derecha)",
+    texto: "S -> aS | bB | b | λ\nB -> bB | b" },
+  { unidad: "U2A", tipo: 2, notacion: "bnf", nombre: "Número (BNF, slide 17): GIC que genera un lenguaje regular",
+    texto: "<Numero> ::= <Signo><Digito>\n<Signo> ::= + | -\n<Digito> ::= <Caracter><Digito> | <Caracter>\n<Caracter> ::= 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9",
+    nota: "Esta gramática <b>no tiene forma tipo 3</b>: <code>&lt;Numero&gt; ::= &lt;Signo&gt;&lt;Digito&gt;</code> pone dos no terminales del lado derecho. "
+        + "Pero el <b>lenguaje</b> que genera sí es regular — la slide 18 le da la expresión regular <code>(+|-)·(0|…|9)·(0|…|9)*</code>. "
+        + "Gramática regular y gramática <i>de un lenguaje regular</i> no son lo mismo: el preset «Número lineal a derecha» genera el mismo lenguaje con forma tipo 3." },
+  { unidad: "U2A", tipo: 3, notacion: "bnf", nombre: "Número lineal a derecha (equivalente, tipo 3)",
+    texto: "<Numero> ::= +<Digito> | -<Digito>\n<Digito> ::= 0<Digito> | 1<Digito> | 2<Digito> | 3<Digito> | 4<Digito> | 5<Digito> | 6<Digito> | 7<Digito> | 8<Digito> | 9<Digito> | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9",
+    nota: "Genera <b>el mismo lenguaje</b> que el preset «Número» de la slide 17 (<code>(+|-)·(0|…|9)·(0|…|9)*</code>), pero escrito en forma lineal a derecha: cada producción deja un terminal y, como máximo, un no terminal a la derecha. Por eso sí carga como tipo 3." },
+  { unidad: "U2A", tipo: 2, notacion: "bnf", nombre: "EXPRESION (BNF, slide 24): GIC de un lenguaje finito {aa, ab, ba, bb}",
+    texto: "<EXPRESION> ::= <PARTE><PARTE>\n<PARTE> ::= a | b",
+    nota: "<code>&lt;EXPRESION&gt; ::= &lt;PARTE&gt;&lt;PARTE&gt;</code> tiene dos no terminales del lado derecho, así que la gramática <b>no tiene forma tipo 3</b>. "
+        + "El lenguaje es <code>{aa, ab, ba, bb}</code>: finito, y todo lenguaje finito es regular (slide 26) — se puede escribir <code>aa | ab | ba | bb</code>." },
+  // --- Unidad 3A: gramáticas independientes de contexto (tipo 2) ---
+  { unidad: "U3A", tipo: 2, notacion: "flechas", nombre: "Clase: S → aS | Sb | λ   (aⁿbᵐ, mezcla las dos direcciones)", texto: "S -> aS | Sb | λ" },
+  { unidad: "U3A", tipo: 2, notacion: "flechas", nombre: "Ej 1: S → aSd | A …", texto: "S -> aSd | A\nA -> bAc | λ" },
+  { unidad: "U3A", tipo: 2, notacion: "flechas", nombre: "Ej 2a: S → aSb | A …", texto: "S -> aSb | A\nA -> cA | Ad | λ" },
+  { unidad: "U3A", tipo: 2, notacion: "flechas", nombre: "Ej 2b: S → cS | Sd | A …", texto: "S -> cS | Sd | A\nA -> aAb | λ" },
+  { unidad: "U3A", tipo: 2, notacion: "flechas", nombre: "CYK (libro): S→AB|BA|SS|AC|BD …", texto: "S -> AB | BA | SS | AC | BD\nA -> a\nB -> b\nC -> SB\nD -> SA" },
+  { unidad: "U3A", tipo: 2, notacion: "flechas", nombre: "aⁿbⁿ (lenguaje no regular): S → aSb | λ", texto: "S -> aSb | λ" },
 ];
 
 // ---------- estado ----------
@@ -241,41 +333,178 @@ let sel = -1;          // índice del no terminal seleccionado en forma
 let historia = [];     // [{forma: [...], regla: "S → aS" | null}]
 let palabras = new Set();
 
+// ---------- notaciones (flechas <-> BNF) ----------
+// La cátedra usa dos notaciones equivalentes y ambas valen en parciales (U2A, slide 21
+// «Formas de escribir una gramática» y slide 23 «Gramática en notación BNF»):
+//   flechas: mayúsculas = no terminales, minúsculas = terminales, «->» (o «→») para asignar
+//   BNF:     no terminales entre < >, «::=» para asignar
+// Un token es el nombre de un no terminal («S», «Numero») o UN carácter terminal.
+const NT_NOMBRE  = "[A-Za-z][A-Za-z0-9_]*";
+const TERM_CHARS = "a-z0-9+\\-*/()";
+const RE_LINEA_BNF     = new RegExp(`^<(${NT_NOMBRE})>\\s*::=\\s*(.+)$`);
+const RE_BNF_SIN_ANG   = new RegExp(`^(${NT_NOMBRE})\\s*::=`);
+const RE_LINEA_FLECHAS = new RegExp(`^(?:<(${NT_NOMBRE})>|([A-Z]))\\s*(?:->|→)\\s*(.+)$`);
+const RE_TOKEN         = new RegExp(`<(${NT_NOMBRE})>|([A-Z])|([${TERM_CHARS}])|(.)`, "g");
+const RE_LAMBDA        = /^(λ|lambda|landa)$/i;
+
+// forma de un token: los terminales son de UN carácter y nunca mayúscula, así que
+// «tiene más de un carácter o es mayúscula» <=> es nombre de no terminal.
+function esNombreNT(tok) { return tok.length > 1 || /[A-Z]/.test(tok); }
+
+function nombreNTValido(name) {
+  if (name.length === 1 && !/[A-Z]/.test(name))
+    throw `Un no terminal de una sola letra va en mayúscula: «<${name.toUpperCase()}>», no «<${name}>»`;
+  return name;
+}
+
+// Devuelve { lhs, notacion, altsTxt }. Única fuente de verdad de la sintaxis de línea.
+function parsearLinea(linea) {
+  let m = RE_LINEA_BNF.exec(linea);
+  if (m) return { lhs: nombreNTValido(m[1]), notacion: "bnf", altsTxt: m[2] };
+  m = RE_BNF_SIN_ANG.exec(linea);
+  if (m) throw `En notación BNF el no terminal va entre < >: escribí «<${m[1]}> ::= …»`;
+  m = RE_LINEA_FLECHAS.exec(linea);
+  if (m) return { lhs: nombreNTValido(m[1] || m[2]), notacion: "flechas", altsTxt: m[3] };
+  throw `No entiendo la línea: «${linea}» — usá «S -> aS | λ» o «<Numero> ::= <Signo><Digito>»`;
+}
+
+// Una alternativa («aS», «<Caracter><Digito>», «λ») -> array de tokens ([] para λ).
+function tokenizar(altTxt, linea) {
+  const alt = altTxt.replace(/\s+/g, "");   // «a S d» = «aSd»
+  if (alt === "") throw `Alternativa vacía en «${linea}» — si querés la cadena vacía, escribí λ`;
+  if (RE_LAMBDA.test(alt)) return [];
+  const toks = [];
+  RE_TOKEN.lastIndex = 0;
+  let m;
+  while ((m = RE_TOKEN.exec(alt)) !== null) {
+    if (m[1] !== undefined) toks.push(nombreNTValido(m[1]));
+    else if (m[2] !== undefined) toks.push(m[2]);
+    else if (m[3] !== undefined) toks.push(m[3]);
+    else throw `Símbolo no permitido: «${m[4]}» (terminales: minúsculas, dígitos, + - * / ( ); no terminales: una mayúscula o <Nombre>)`;
+  }
+  return toks;
+}
+
+// --- render de una gramática en cualquiera de las dos notaciones ---
+function tokensATexto(rhs, notacion, nts) {
+  return rhs.length ? rhs.map(t => nts.has(t) ? ntATexto(t, notacion) : t).join("") : "λ";
+}
+function lineaTexto(lhs, altsTxt, notacion, pretty) {
+  const asig = notacion === "bnf" ? "::=" : (pretty ? "→" : "->");
+  return `${ntATexto(lhs, notacion)} ${asig} ${altsTxt.join(" | ")}`;
+}
+function gramaticaATexto(g, notacion) {
+  const orden = [], mapa = {};
+  for (const p of g.prods) {
+    if (!(p.lhs in mapa)) { mapa[p.lhs] = []; orden.push(p.lhs); }
+    mapa[p.lhs].push(tokensATexto(p.rhs, notacion, g.nts));
+  }
+  return orden.map(l => lineaTexto(l, mapa[l], notacion)).join("\n");
+}
+
+// ---------- clasificación (tipo 3 / tipo 2) ----------
+// Gramática regular (tipo 3) tal como la define la cátedra (U2A, slide 19 y dictado 2C; misma
+// definición en el apunte UNICEN que la slide cita: «el lado derecho debe contener un símbolo
+// terminal y, como máximo, un símbolo no terminal»):
+//   lineal a derecha:  A -> aB  |  A -> a        (el no terminal queda a la DERECHA del terminal)
+//   lineal a izquierda: A -> Ba |  A -> a        (queda a la izquierda)
+//   más S -> λ si el lenguaje incluye la cadena vacía.
+// Todo lo demás (A -> B, A -> aSb, A -> AB, A -> ab, A -> abB, y A -> λ con A ≠ S) NO tiene
+// forma regular. Es la forma estricta (un solo terminal, λ sólo desde el distinguido — apunte
+// U2A §14: «si el lenguaje incluye λ, hay una regla S → λ»); Hopcroft admite A -> abB, A -> B
+// y A -> λ en cualquier no terminal, la cátedra no. Decidido con Fede 2026-10-02.
+// Vocabulario: la herramienta nunca dice «lineal» a secas — en la bibliografía «gramática
+// lineal» es otra cosa (≤1 no terminal por producción; S -> aSb SÍ es lineal). Siempre
+// «lineal a derecha» / «lineal a izquierda», o el motivo concreto por el que no entra.
+// OJO: esto clasifica la FORMA de la gramática, no decide si el LENGUAJE es regular.
+function formaProduccion(rhs, nts, lhs, start) {
+  if (rhs.length === 0) return lhs === start ? "lambda" : "no";
+  if (rhs.length === 1) return nts.has(rhs[0]) ? "no" : "term";
+  if (rhs.length === 2) {
+    const a = nts.has(rhs[0]), b = nts.has(rhs[1]);
+    if (!a && b) return "der";
+    if (a && !b) return "izq";
+  }
+  return "no";
+}
+
+// por qué ESTE lado derecho no tiene forma regular (sin nombrar la producción)
+function motivoForma(rhs, nts, lhs, start) {
+  const nNT = rhs.filter(t => nts.has(t)).length, nT = rhs.length - nNT;
+  if (rhs.length === 0)
+    return `deriva λ desde «${ntATexto(lhs, "flechas")}»: en una gramática regular λ sólo sale del símbolo distinguido (S → λ)`;
+  if (rhs.length === 1 && nNT === 1)
+    return "es una producción unitaria (A → B): no tiene la forma A → aB, A → Ba ni A → a";
+  if (nNT >= 2) return `tiene ${nNT} no terminales del lado derecho (la forma regular admite uno como máximo)`;
+  if (nNT === 0) return `tiene ${nT} terminales seguidos (la forma regular admite un solo terminal por producción)`;
+  const enMedio = nts.has(rhs[0]) === false && nts.has(rhs[rhs.length - 1]) === false;
+  if (enMedio) return "tiene terminales a los dos lados del no terminal (como aSb): no es lineal a derecha ni a izquierda";
+  return `tiene ${nT} terminales seguidos junto al no terminal (como abB): la forma regular admite uno solo`;
+}
+function motivoNoRegular(p, nts, start) { return `«${p.label}» ${motivoForma(p.rhs, nts, p.lhs, start)}`; }
+
+// ¿la FORMA de la gramática entra en tipo 3?
+function esFormaTipo3(tipo) { return tipo === "derecha" || tipo === "izquierda" || tipo === "trivial"; }
+const FORMAS_TIPO3 = "lineal a derecha: A → aB | A → a   ·   lineal a izquierda: A → Ba | A → a   ·   más S → λ";
+
+function clasificarGramatica(prods, nts, start) {
+  let der = null, izq = null;
+  for (const p of prods) {
+    const f = formaProduccion(p.rhs, nts, p.lhs, start);
+    if (f === "no") return { tipo: "gic", culpable: p, motivo: motivoNoRegular(p, nts, start) };
+    if (f === "der" && !der) der = p;
+    if (f === "izq" && !izq) izq = p;
+  }
+  if (der && izq) return { tipo: "mixta", der, izq,
+    motivo: `mezcla «${der.label}», que crece a la derecha, con «${izq.label}», que crece a la izquierda` };
+  if (der) return { tipo: "derecha", motivo: "todas las producciones tienen la forma A → aB o A → a (más S → λ)" };
+  if (izq) return { tipo: "izquierda", motivo: "todas las producciones tienen la forma A → Ba o A → a (más S → λ)" };
+  return { tipo: "trivial", motivo: "solo hay producciones A → a (o λ): cumple lineal a derecha y a izquierda a la vez, y el lenguaje es finito" };
+}
+
 // ---------- parseo de gramática ----------
 function parsearGramatica(txt) {
   const prods = [];
-  let start = null;
+  let start = null, notacion = null;
   const lineas = txt.split("\n").map(l => l.trim()).filter(l => l);
   for (const linea of lineas) {
-    const m = linea.match(/^([A-Z])\s*(?:->|→)\s*(.+)$/);
-    if (!m) throw `No entiendo la línea: «${linea}»`;
-    const lhs = m[1];
-    if (start === null) start = lhs;
-    for (let alt of m[2].split("|")) {
-      alt = alt.replace(/\s+/g, "");   // «a S d» = «aSd»
-      if (alt === "") throw `Alternativa vacía en «${linea}» — si querés la cadena vacía, escribí λ`;
-      if (/^(λ|lambda|landa)$/i.test(alt)) alt = "";
-      if (!/^[A-Za-z]*$/.test(alt)) throw `Lado derecho inválido: «${alt}» (solo letras o λ)`;
-      const label = `${lhs} → ${alt === "" ? "λ" : alt}`;
-      if (!prods.some(q => q.label === label)) prods.push({ lhs, rhs: alt, label });
+    const pl = parsearLinea(linea);
+    if (start === null) { start = pl.lhs; notacion = pl.notacion; }
+    for (const altTxt of pl.altsTxt.split("|")) {
+      const rhs = tokenizar(altTxt, linea);
+      const key = pl.lhs + "\u0002" + rhs.join("\u0001");
+      if (!prods.some(q => q.key === key)) prods.push({ lhs: pl.lhs, rhs, key });
     }
   }
   if (!prods.length) throw "Gramática vacía";
   const nts = new Set(prods.map(p => p.lhs));
   for (const p of prods)
-    for (const ch of p.rhs)
-      if (ch === ch.toUpperCase() && /[A-Z]/.test(ch) && !nts.has(ch))
-        throw `El no terminal «${ch}» no tiene producciones`;
-  return { start, prods, nts };
+    for (const t of p.rhs)
+      if (esNombreNT(t) && !nts.has(t))
+        throw `El no terminal «${ntATexto(t, notacion)}» no tiene producciones`;
+  // la etiqueta de la tecla se arma recién acá: necesita conocer nts y la notación
+  for (const p of prods) p.label = lineaTexto(p.lhs, [tokensATexto(p.rhs, notacion, nts)], notacion, true);
+  return { start, prods, nts, notacion, clasif: clasificarGramatica(prods, nts, start) };
 }
 
 // ---------- mecánica ----------
 function esNT(ch) { return G && G.nts.has(ch); }
 function ntIndices() { return forma.map((c, i) => esNT(c) ? i : -1).filter(i => i >= 0); }
 
+// escape de HTML: los nombres de no terminal pueden venir como «<Numero>» y se
+// insertan en innerHTML (historia, badge, explicaciones) — sin esto se los traga como tags.
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+// un no terminal se escribe «A» en flechas y «<Numero>» en BNF (o siempre que tenga más de un carácter)
+function ntATexto(name, notacion) { return notacion === "bnf" || name.length > 1 ? `<${name}>` : name; }
+// forma sentencial legible (tokens → texto); λ si está vacía
+function formaATexto(f, notacion) {
+  if (notacion === undefined) notacion = G && G.notacion;
+  return f.length ? f.map(t => esNT(t) ? ntATexto(t, notacion) : t).join("") : "λ";
+}
+
 function aplicar(prod) {
   if (sel < 0 || forma[sel] !== prod.lhs) return;
-  const nueva = forma.slice(0, sel).concat(prod.rhs.split(""), forma.slice(sel + 1));
+  const nueva = forma.slice(0, sel).concat(prod.rhs, forma.slice(sel + 1));
   forma = nueva;
   historia.push({ forma: forma.slice(), regla: prod.label, sel, rhs: prod.rhs });
   const nts = ntIndices();
@@ -305,6 +534,11 @@ function reiniciar() {
 // `filas` = [{lhs, rhs}], una por producción. El editor solo SERIALIZA al mismo
 // texto que ya consume parsearGramatica(); la lógica de derivación no se toca.
 let filas = [];
+let filasDOM = [];                // nodos de cada fila, para marcarlas sin re-renderizar (no perder el foco)
+// El tipo se DECLARA antes de escribir. Arranca en 3: el criterio de la cátedra es
+// resolverlo como tipo 3 si se puede, y subir en la jerarquía sólo cuando no alcanza.
+let tipoDeclarado = 3;
+let notacionEditor = "flechas";   // notación en la que se muestran las filas del editor
 let modoTextoVisible = false;
 let textoCargado = null;   // texto de la gramática que está corriendo (última cargada con éxito)
 
@@ -325,19 +559,32 @@ function actualizarBotonCargar() {
 function renderEditor() {
   const cont = document.getElementById("editorFilas");
   cont.innerHTML = "";
+  filasDOM = [];
+  const tog = document.getElementById("toggleNotacion");
+  if (tog) tog.textContent = notacionEditor === "bnf" ? "⇄ escribir con flechas" : "⇄ escribir en BNF";
   if (!filas.length) filas.push({ lhs: "", rhs: "" });
   filas.forEach((f, i) => {
     const row = document.createElement("div");
     row.className = "gfila";
 
-    const nt = document.createElement("input");
-    nt.type = "text"; nt.className = "nt-in"; nt.maxLength = 1; nt.placeholder = "S"; nt.value = f.lhs;
-    nt.oninput = () => { f.lhs = nt.value.toUpperCase(); nt.value = f.lhs; tocado(); };
+    const bnf = notacionEditor === "bnf";
 
-    const fl = document.createElement("span"); fl.className = "flecha"; fl.textContent = "→";
+    const nt = document.createElement("input");
+    nt.type = "text"; nt.className = "nt-in"; nt.placeholder = bnf ? "Numero" : "S"; nt.value = f.lhs;
+    nt.size = Math.max(2, (f.lhs || "").length + 1);
+    nt.oninput = () => {
+      let v = nt.value.replace(/[<>\s]/g, "");
+      if (v.length === 1) v = v.toUpperCase();   // «s» → «S»; los nombres largos se respetan
+      f.lhs = v; nt.value = v; nt.size = Math.max(2, v.length + 1); tocado();
+    };
+
+    const fl = document.createElement("span");
+    fl.className = "flecha" + (bnf ? " bnf" : ""); fl.textContent = bnf ? "::=" : "→";
 
     const rhs = document.createElement("input");
-    rhs.type = "text"; rhs.className = "rhs-in"; rhs.placeholder = "aS   (o λ)"; rhs.value = f.rhs;
+    rhs.type = "text"; rhs.className = "rhs-in";
+    rhs.placeholder = bnf ? "<Caracter><Digito>   (o λ)" : "aS   (o λ)";
+    rhs.value = f.rhs;
     rhs.oninput = () => { f.rhs = rhs.value; tocado(); };
 
     const lam = document.createElement("button");
@@ -348,57 +595,137 @@ function renderEditor() {
     del.className = "mini del"; del.textContent = "×"; del.title = "borrar producción";
     del.onclick = () => { filas.splice(i, 1); if (!filas.length) filas.push({ lhs: "", rhs: "" }); renderEditor(); tocado(); };
 
-    row.append(nt, fl, rhs, lam, del);
+    const msg = document.createElement("span"); msg.className = "fila-msg";
+
+    if (bnf) {
+      const a1 = document.createElement("span"); a1.className = "ang"; a1.textContent = "<";
+      const a2 = document.createElement("span"); a2.className = "ang"; a2.textContent = ">";
+      row.append(a1, nt, a2, fl, rhs, lam, del, msg);
+    } else row.append(nt, fl, rhs, lam, del, msg);
     cont.appendChild(row);
+    filasDOM.push({ row, msg });
+  });
+  marcarFilas();
+}
+
+// Veredicto en vivo, producción por producción. Sólo en modo tipo 3: es ahí donde
+// hay un límite que hacer sentir. Se recalcula en cada tecla SIN re-renderizar las
+// filas (si no, se pierde el foco mientras se escribe).
+function marcarFilas() {
+  const lhsDe = f => (f.lhs || "").trim().replace(/^<|>$/g, "");
+  const nts = new Set(filas.map(lhsDe).filter(Boolean));
+  const start = filas.map(lhsDe).find(Boolean) || null;   // el distinguido es el de la primera fila
+  let dir = null;                       // primera dirección encontrada: la que "elegiste"
+  const veredictos = filas.map(f => {
+    if (tipoDeclarado !== 3) return null;
+    const l = lhsDe(f), r = (f.rhs || "").trim();
+    if (!l || r === "") return null;                       // fila incompleta: sin veredicto
+    let rhs;
+    try { rhs = tokenizar(r, r); } catch (e) { return null; }   // a medio escribir
+    if (rhs.some(t => esNombreNT(t) && !nts.has(t))) return null;   // no terminal todavía sin reglas
+    const forma = formaProduccion(rhs, nts, l, start);
+    if (forma === "no") return { clase: "mal", texto: "⚠ " + motivoForma(rhs, nts, l, start) };
+    if (forma === "der" || forma === "izq") {
+      if (dir === null) { dir = forma; return null; }
+      if (dir !== forma) {
+        const eleg = dir === "der" ? "derecha" : "izquierda", esta = forma === "der" ? "derecha" : "izquierda";
+        return { clase: "ojo", texto: `⚠ ésta crece a la ${esta} y arriba elegiste crecer a la ${eleg}` };
+      }
+    }
+    return null;
+  });
+  filasDOM.forEach((d, i) => {
+    const v = veredictos[i];
+    d.row.className = "gfila" + (v ? " " + v.clase : "");
+    d.msg.textContent = v ? v.texto : "";
   });
 }
 
 function agregarFila() { filas.push({ lhs: "", rhs: "" }); renderEditor(); tocado(); }
 
 // edición manual → sincronizar texto, marcar "personalizada" y resaltar Cargar
-function tocado() { sincTextoDesdeFilas(); marcarPersonalizada(); actualizarBotonCargar(); }
+function tocado() { sincTextoDesdeFilas(); marcarPersonalizada(); actualizarBotonCargar(); marcarFilas(); }
 function tocadoTexto() { marcarPersonalizada(); actualizarBotonCargar(); }
 
 function filasATexto() {
   const orden = [], mapa = {};
   for (const f of filas) {
-    const l = (f.lhs || "").trim(); const r = (f.rhs || "").trim();
+    const l = (f.lhs || "").trim().replace(/^<|>$/g, ""); const r = (f.rhs || "").trim();
     if (!l || r === "") continue;                 // fila incompleta: no serializar
     if (!(l in mapa)) { mapa[l] = []; orden.push(l); }
     mapa[l].push(r);
   }
-  return orden.map(l => `${l} -> ${mapa[l].join(" | ")}`).join("\n");
+  return orden.map(l => lineaTexto(l, mapa[l], notacionEditor)).join("\n");
 }
 
 function sincTextoDesdeFilas() {
   document.getElementById("gramatica").value = filasATexto();
 }
 
+// Devuelve las líneas que no se entendieron (y por eso no entraron a las filas).
 function textoAFilas(txt) {
-  const nuevas = [];
+  const nuevas = [], descartadas = [];
+  let nota = null;
   for (const linea of txt.split("\n").map(l => l.trim()).filter(l => l)) {
-    const m = linea.match(/^([A-Z])\s*(?:->|→)\s*(.+)$/);
-    if (!m) continue;
-    for (let alt of m[2].split("|")) {
+    let pl;
+    try { pl = parsearLinea(linea); } catch (e) { descartadas.push(linea); continue; }   // línea a medio escribir
+    if (nota === null) nota = pl.notacion;
+    for (let alt of pl.altsTxt.split("|")) {
       alt = alt.replace(/\s+/g, "");
-      if (/^(λ|lambda|landa)$/i.test(alt)) alt = "λ";
-      if (alt !== "") nuevas.push({ lhs: m[1], rhs: alt });
+      if (RE_LAMBDA.test(alt)) alt = "λ";
+      if (alt !== "") nuevas.push({ lhs: pl.lhs, rhs: alt });
     }
   }
+  if (nota !== null) notacionEditor = nota;
   filas = nuevas.length ? nuevas : [{ lhs: "", rhs: "" }];
+  return descartadas;
+}
+
+// declara en qué tipo se está trabajando: en tipo 3 la herramienta hace cumplir la forma lineal
+function cambiarTipo(t) {
+  tipoDeclarado = t;
+  document.getElementById("tab3").className = "tipo-tab" + (t === 3 ? " activa" : "");
+  document.getElementById("tab2").className = "tipo-tab" + (t === 2 ? " activa" : "");
+  document.getElementById("tipoQue").textContent = t === 3
+    ? "sólo gramáticas regulares — " + FORMAS_TIPO3
+    : "cualquier forma de producción";
+  document.getElementById("gramRechazo").style.display = "none";
+  marcarFilas();
+  renderBadge();
+}
+
+// alterna cómo se ESCRIBE la gramática en el editor (no cambia la gramática)
+function toggleNotacionEditor(ev) {
+  if (ev) ev.preventDefault();
+  notacionEditor = notacionEditor === "bnf" ? "flechas" : "bnf";
+  renderEditor();
+  sincTextoDesdeFilas();
+  actualizarBotonCargar();
 }
 
 function toggleModoTexto(ev) {
   if (ev) ev.preventDefault();
+  const err = document.getElementById("gramError");
+  if (modoTextoVisible) {
+    // al volver a las filas, el texto tiene que entenderse entero: una línea que no parsea
+    // no se descarta en silencio (quedaría en el textarea, invisible, y «Cargar» fallaría
+    // por una línea que no se ve). Se queda en modo texto y se señala la línea.
+    const malas = textoAFilas(document.getElementById("gramatica").value);
+    if (malas.length) {
+      renderEditor();   // las filas reflejan lo que sí se entendió
+      err.textContent = `⚠ No entiendo la línea «${malas[0]}» — corregila o borrala antes de volver a las filas`;
+      actualizarBotonCargar();
+      return;
+    }
+    err.textContent = "";
+    renderEditor();
+    sincTextoDesdeFilas();                         // textarea ≡ filas: lo que se carga es lo que se ve
+  } else {
+    sincTextoDesdeFilas();                         // mostrar el texto al día
+  }
   modoTextoVisible = !modoTextoVisible;
   document.getElementById("modoTexto").style.display = modoTextoVisible ? "" : "none";
   document.getElementById("toggleTexto").textContent = modoTextoVisible ? "▴ ocultar texto" : "✎ editar como texto";
-  if (modoTextoVisible) {
-    sincTextoDesdeFilas();                         // mostrar el texto al día
-  } else {
-    textoAFilas(document.getElementById("gramatica").value);   // al volver, filas desde texto
-    renderEditor();
-  }
   actualizarBotonCargar();
 }
 
@@ -411,28 +738,143 @@ function cargarPreset() {
   const v = document.getElementById("preset").value;
   if (v === "custom") return;                      // no pisar lo que el usuario armó
   // solo vuelca el preset en el editor; NO se activa hasta apretar "Cargar gramática"
+  cambiarTipo(PRESETS[+v].tipo);      // cada preset declara en qué tipo está escrito
   textoAFilas(PRESETS[+v].texto);
   renderEditor();
   sincTextoDesdeFilas();
   actualizarBotonCargar();    // el preset volcado difiere de lo que corre → resaltar
 }
 
-function aplicarGramatica() {
+function aplicarGramatica(subirATipo2) {
   // el textarea es la fuente a parsear: en modo estructurado ya viene sincronizado
   // desde las filas (cada edición llama a sincTextoDesdeFilas); en modo texto es la
   // edición directa y refrescamos las filas para que el toggle de vuelta sea coherente.
   if (modoTextoVisible) textoAFilas(document.getElementById("gramatica").value);
   const err = document.getElementById("gramError");
+  const rech = document.getElementById("gramRechazo");
+  if (subirATipo2) cambiarTipo(2);
   try {
-    G = parsearGramatica(document.getElementById("gramatica").value);
+    const Gnuevo = parsearGramatica(document.getElementById("gramatica").value);
+    // en tipo 3 la forma se hace cumplir: la gramática que se escapa NO se carga
+    if (tipoDeclarado === 3 && !esFormaTipo3(Gnuevo.clasif.tipo)) {
+      err.textContent = "";
+      rech.innerHTML = `<b>⚠ No se puede cargar como tipo 3.</b> ${esc(Gnuevo.clasif.motivo)}.`
+        + `<br><span class="hint">En una gramática regular (tipo 3) toda producción tiene una de estas formas:</span>`
+        + `<br><span class="formas">${FORMAS_TIPO3}</span>`
+        + `<br><button onclick="aplicarGramatica(true)">Subir en la jerarquía: cargarla como tipo 2</button>`;
+      rech.style.display = "";
+      return;                      // la gramática que estaba cargada sigue viva
+    }
+    rech.style.display = "none";
+    G = Gnuevo;
+    G.modoCarga = tipoDeclarado;
     err.textContent = "";
     palabras = new Set();   // las palabras generadas son DE esta gramática
     textoCargado = document.getElementById("gramatica").value;   // queda como referencia
+    renderOtraNotacion();
+    renderBadge();
+    renderPresetNota();
+    renderJerarquia();
     reiniciar();
     actualizarBotonCargar();   // ya coincide → apagar el resalte
     if (modoDesafio) nuevoDesafio();   // objetivo nuevo para la gramática nueva
     if (modoPractica) nuevoCuestionario();   // cuestionario nuevo para la gramática nueva
-  } catch (e) { err.textContent = "⚠ " + e; }
+  } catch (e) {
+    err.textContent = "⚠ " + e;
+    rech.style.display = "none";
+    document.getElementById("otraNotacion").style.display = "none";
+    document.getElementById("gramBadge").innerHTML = "";
+    document.getElementById("presetNota").innerHTML = "";
+    document.getElementById("jerarquia").innerHTML = "";
+  }
+}
+
+// Nota CURADA de la práctica: conocimiento humano sobre el preset (p. ej. «su lenguaje es
+// regular, ER en la slide 18»). Es lo único que habla del lenguaje, y sólo porque lo dice el
+// material de la cátedra — el badge calculado sigue sin afirmar nada sobre el lenguaje.
+function presetDe(g) {
+  if (!g) return null;
+  const firma = x => x.start + "\u0003" + x.prods.map(p => p.key).sort().join("\u0004");
+  const mia = firma(g);
+  for (const pr of PRESETS) {
+    try { if (firma(parsearGramatica(pr.texto)) === mia) return pr; } catch (e) {}
+  }
+  return null;
+}
+function renderPresetNota() {
+  const el = document.getElementById("presetNota");
+  const pr = presetDe(G);
+  el.innerHTML = (pr && pr.nota) ? `<span class="nota-preset">📌 <b>Nota de la práctica.</b> ${pr.nota}</span>` : "";
+}
+
+// clasificación de la gramática cargada. Habla SÓLO de la forma de la gramática:
+// nunca afirma nada sobre el lenguaje que genera (eso, en general, no es decidible).
+function renderBadge() {
+  const el = document.getElementById("gramBadge");
+  if (!G) { el.innerHTML = ""; return; }
+  const c = G.clasif;
+  const T = {
+    derecha:   ["t3", "Tipo 3 · gramática lineal a derecha"],
+    izquierda: ["t3", "Tipo 3 · gramática lineal a izquierda"],
+    trivial:   ["t3", "Tipo 3 · gramática regular (lineal a derecha y a izquierda a la vez)"],
+    mixta:     ["mixta", "Tipo 2 · mezcla lineal a derecha con lineal a izquierda"],
+    gic:       ["", "Tipo 2 · no tiene forma regular"],
+  }[c.tipo];
+  let cola;
+  if (esFormaTipo3(c.tipo)) {
+    cola = G.modoCarga === 2
+      ? " Ya tiene forma de tipo 3; la cargaste como tipo 2, que la incluye."
+      : " Toda gramática regular es también libre de contexto: tipo 3 ⊂ tipo 2.";
+  } else if (c.tipo === "mixta") {
+    cola = " La definición pide que TODAS las producciones crezcan para el mismo lado, así que no es lineal a derecha ni lineal a izquierda.";
+  } else cola = "";
+  el.innerHTML = `<span class="badge ${T[0]}"><b>${T[1]}</b> — ${esc(c.motivo)}.${cola}</span>`;
+}
+
+// jerarquía de Chomsky: sólo los dos niveles que se pueden deducir de la FORMA.
+function renderJerarquia() {
+  const cont = document.getElementById("jerarquia");
+  cont.innerHTML = "";
+  if (!G) return;
+  const dentro = esFormaTipo3(G.clasif.tipo);
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", "0 0 380 140");
+  svg.setAttribute("width", 380); svg.setAttribute("height", 140);
+  const caja = (x, y, w, h, cls) => {
+    const r = document.createElementNS(NS, "rect");
+    r.setAttribute("x", x); r.setAttribute("y", y); r.setAttribute("width", w); r.setAttribute("height", h);
+    r.setAttribute("rx", 8); r.setAttribute("class", cls);
+    svg.appendChild(r);
+  };
+  const rot = (x, y, txt, cls) => {
+    const t = document.createElementNS(NS, "text");
+    t.setAttribute("x", x); t.setAttribute("y", y); t.setAttribute("class", cls);
+    t.textContent = txt; svg.appendChild(t);
+  };
+  caja(4, 4, 372, 132, "jq-caja" + (dentro ? "" : " dentro"));
+  rot(16, 22, "Tipo 2 · gramáticas libres de contexto", "jq-rot" + (dentro ? "" : " dentro"));
+  caja(20, 34, 340, 64, "jq-caja" + (dentro ? " dentro" : ""));
+  rot(32, 52, "Tipo 3 · gramáticas regulares", "jq-rot" + (dentro ? " dentro" : ""));
+  const cy = dentro ? 76 : 118;
+  const c = document.createElementNS(NS, "circle");
+  c.setAttribute("cx", 40); c.setAttribute("cy", cy); c.setAttribute("r", 5);
+  c.setAttribute("class", "jq-punto"); c.setAttribute("data-dentro", dentro ? "si" : "no");
+  svg.appendChild(c);
+  rot(52, cy + 4, "tu gramática", "jq-punto-rot");
+  cont.appendChild(svg);
+}
+
+// muestra la gramática cargada escrita en la OTRA notación (flechas <-> BNF)
+function renderOtraNotacion() {
+  const wrap = document.getElementById("otraNotacion");
+  if (!G) { wrap.style.display = "none"; return; }
+  const otra = G.notacion === "bnf" ? "flechas" : "bnf";
+  document.getElementById("otraNotacionTit").textContent = otra === "bnf"
+    ? "La misma gramática en notación BNF (la que usan en Compiladores):"
+    : "La misma gramática en notación de flechas:";
+  document.getElementById("otraNotacionTxt").textContent = gramaticaATexto(G, otra);
+  wrap.style.display = "";
 }
 
 function render() {
@@ -445,6 +887,7 @@ function render() {
     document.getElementById("teclado").innerHTML = "";
     document.getElementById("historia").innerHTML = "";
     document.getElementById("arbol").innerHTML = "";
+    document.getElementById("arbolLiana").style.display = "none";
     document.getElementById("palabras").innerHTML = '<span class="hint" style="background:none;border:none;color:var(--gray)">todavía ninguna</span>';
     document.getElementById("desafioMsg").innerHTML = modoDesafio ? '<span class="hint">Cargue una gramática para proponer una palabra.</span>' : "";
     document.getElementById("desafioObjetivoTxt").textContent = "—";
@@ -458,7 +901,7 @@ function render() {
       const sp = document.createElement("span");
       sp.textContent = ch;
       if (esNT(ch)) {
-        sp.className = "nt" + (i === sel ? " sel" : "");
+        sp.className = "nt" + (i === sel ? " sel" : "") + (ch.length > 1 ? " largo" : "");
         sp.title = "tocá para seleccionar este cursor";
         sp.onclick = () => { sel = i; render(); };
       } else sp.className = "term";
@@ -483,8 +926,8 @@ function render() {
   }
   // historia
   document.getElementById("historia").innerHTML = historia.map((h, i) => {
-    const f = h.forma.length ? h.forma.join("") : "λ";
-    return (i === 0 ? "&nbsp;&nbsp;" : "⇒ ") + f + (h.regla ? `&nbsp;&nbsp;<span class="regla">(${h.regla})</span>` : "");
+    const f = esc(formaATexto(h.forma));
+    return (i === 0 ? "&nbsp;&nbsp;" : "⇒ ") + f + (h.regla ? `&nbsp;&nbsp;<span class="regla">(${esc(h.regla)})</span>` : "");
   }).join("<br>");
   // árbol (siempre actualizado, esté visible o no)
   renderArbol();
@@ -525,9 +968,9 @@ function construirArbol() {
       n.children.forEach(buscar);
     })(raiz);
     if (!objetivo) break;                   // no debería pasar
-    objetivo.children = paso.rhs === ""
+    objetivo.children = paso.rhs.length === 0
       ? [{ sym: "λ", children: null }]
-      : paso.rhs.split("").map(c => ({ sym: c, children: null }));
+      : paso.rhs.map(c => ({ sym: c, children: null }));
   }
   return raiz;
 }
@@ -535,6 +978,15 @@ function construirArbol() {
 function renderArbol() {
   const cont = document.getElementById("arbol");
   cont.innerHTML = "";
+  // en una gramática lineal el árbol degenera en una «liana»: un solo no terminal por nivel,
+  // siempre en el mismo extremo. Es la huella visual de una gramática regular.
+  const liana = !!G && (G.clasif.tipo === "derecha" || G.clasif.tipo === "izquierda");
+  const hint = document.getElementById("arbolLiana");
+  if (liana) {
+    const der = G.clasif.tipo === "derecha";
+    hint.textContent = `Gramática lineal a ${der ? "derecha" : "izquierda"}: el árbol es una «liana» que baja hacia la ${der ? "derecha" : "izquierda"} — en cada nivel queda un terminal y el único no terminal sigue derivando en el extremo ${der ? "derecho" : "izquierdo"}.`;
+    hint.style.display = "";
+  } else hint.style.display = "none";
   const raiz = construirArbol();
   if (!raiz) return;
   // layout: hojas equiespaciadas en x, padres centrados sobre sus hijos
@@ -549,10 +1001,13 @@ function renderArbol() {
     }
     nodos.push(n);
   })(raiz, 0);
-  const DX = 52, DY = 62, R = 15, PAD = 28;
-  const W = PAD * 2 + R * 2 + Math.max(nextX - 1, 0) * DX;
+  const DY = 62, R = 15, PAD = 28, CW = 9;   // CW ≈ ancho de un carácter en Consolas 15px bold
+  const anchoDe = n => Math.max(R * 2, n.sym.length * CW + 12);
+  const maxW = Math.max(...nodos.map(anchoDe));
+  const DX = Math.max(52, maxW + 10);
+  const W = PAD * 2 + maxW + Math.max(nextX - 1, 0) * DX;
   const H = PAD * 2 + R * 2 + prof * DY;
-  const px = n => PAD + R + n.x * DX, py = n => PAD + R + n.d * DY;
+  const px = n => PAD + maxW / 2 + n.x * DX, py = n => PAD + R + n.d * DY;
   const NS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(NS, "svg");
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
@@ -562,7 +1017,7 @@ function renderArbol() {
     const l = document.createElementNS(NS, "line");
     l.setAttribute("x1", px(a)); l.setAttribute("y1", py(a) + R);
     l.setAttribute("x2", px(b)); l.setAttribute("y2", py(b) - R);
-    l.setAttribute("class", "tarista");
+    l.setAttribute("class", "tarista" + (liana && esNT(b.sym) ? " liana" : ""));
     svg.appendChild(l);
   }
   let visIdx = -1;   // posición en la frontera visible = índice en forma
@@ -579,8 +1034,10 @@ function renderArbol() {
       g.setAttribute("data-idx", miIdx);
     }
     g.setAttribute("class", cls);
-    const c = document.createElementNS(NS, "circle");
-    c.setAttribute("cx", px(n)); c.setAttribute("cy", py(n)); c.setAttribute("r", R);
+    const w = anchoDe(n);
+    const c = document.createElementNS(NS, "rect");
+    c.setAttribute("x", px(n) - w / 2); c.setAttribute("y", py(n) - R);
+    c.setAttribute("width", w); c.setAttribute("height", R * 2); c.setAttribute("rx", R);
     const t = document.createElementNS(NS, "text");
     t.setAttribute("x", px(n)); t.setAttribute("y", py(n));
     t.textContent = n.sym;
@@ -625,7 +1082,7 @@ function derivacionAzar(maxLen, maxPasos = 90) {
       cands = cands.filter(p => contarNT(p.rhs) === minNT);
     }
     const prod = cands[Math.floor(Math.random() * cands.length)];
-    f = f.slice(0, sel).concat(prod.rhs.split(""), f.slice(sel + 1));
+    f = f.slice(0, sel).concat(prod.rhs, f.slice(sel + 1));
     pasos.push({ sel, prod });
   }
   return { palabra: f.join(""), pasos };
@@ -647,13 +1104,13 @@ function generarPalabraAzar(minLen = 2, maxLen = 8, intentos = 600) {
 
 function derivacionTexto(pasos) {
   let f = [G.start];
-  const out = [f.join("")];
+  const out = [formaATexto(f)];
   for (const { sel, prod } of pasos) {
-    f = f.slice(0, sel).concat(prod.rhs.split(""), f.slice(sel + 1));
-    out.push(f.join("") === "" ? "λ" : f.join(""));
+    f = f.slice(0, sel).concat(prod.rhs, f.slice(sel + 1));
+    out.push(formaATexto(f));
   }
-  return out.map((s, i) => (i === 0 ? "&nbsp;&nbsp;" : "⇒ ") + s +
-    (pasos[i - 1] ? `&nbsp;&nbsp;<span class="regla" style="color:var(--gray);font-size:.85em">(${pasos[i - 1].prod.label})</span>` : "")).join("<br>");
+  return out.map((s, i) => (i === 0 ? "&nbsp;&nbsp;" : "⇒ ") + esc(s) +
+    (pasos[i - 1] ? `&nbsp;&nbsp;<span class="regla" style="color:var(--gray);font-size:.85em">(${esc(pasos[i - 1].prod.label)})</span>` : "")).join("<br>");
 }
 
 function toggleModoDesafio() {
@@ -713,33 +1170,68 @@ function utilesNT(G) {                           // no terminales productivos �
     for (const p of G.prods) if (p.lhs === A) for (const c of p.rhs) if (G.nts.has(c) && !reach.has(c)) st.push(c); }
   return new Set([...G.nts].filter(A => prod.has(A) && reach.has(A)));
 }
-function esInfinito(G) {                          // infinito ⟺ ciclo en el grafo de NT útiles
-  const U = utilesNT(G); if (!U.has(G.start)) return false;
-  const adj = {}; for (const A of U) adj[A] = [];
+// ciclo en el grafo de no terminales. `U` = no terminales considerados; con `soloUsables`
+// se descartan las producciones que pasan por un no terminal fuera de U (crecimiento REAL).
+// Devuelve { hay, testigo }: el testigo prefiere la recursión DIRECTA, que es la que se ve en el papel.
+function cicloNT(G, U, soloUsables) {
+  const adj = {}, via = {};
+  for (const A of U) { adj[A] = []; via[A] = {}; }
+  let directa = null;
   for (const p of G.prods) {
     if (!U.has(p.lhs)) continue;
-    let usable = true; for (const c of p.rhs) if (G.nts.has(c) && !U.has(c)) { usable = false; break; }
-    if (!usable) continue;
-    for (const c of p.rhs) if (U.has(c)) adj[p.lhs].push(c);
+    if (soloUsables) {
+      let usable = true;
+      for (const c of p.rhs) if (G.nts.has(c) && !U.has(c)) { usable = false; break; }
+      if (!usable) continue;
+    }
+    for (const c of p.rhs) if (U.has(c)) {
+      adj[p.lhs].push(c);
+      if (via[p.lhs][c] === undefined) via[p.lhs][c] = p;
+      if (c === p.lhs && !directa) directa = p;
+    }
   }
-  const color = {}; let cyc = false;
-  for (const A of U) { if (color[A] || cyc) continue;
+  const color = {}; let cyc = false, testigo = null;
+  for (const A of U) {
+    if (color[A] || cyc) continue;
     (function dfs(u) { color[u] = 1;
-      for (const v of adj[u]) { if (color[v] === 1) { cyc = true; return; } if (!color[v]) { dfs(v); if (cyc) return; } }
+      for (const v of adj[u]) {
+        if (color[v] === 1) { cyc = true; if (!testigo) testigo = via[u][v]; return; }
+        if (!color[v]) { dfs(v); if (cyc) return; }
+      }
       color[u] = 2; })(A);
   }
-  return cyc;
+  return { hay: cyc, testigo: directa || testigo };
 }
+
+// infinito ⟺ ciclo en el grafo de no terminales ÚTILES (productivos y alcanzables)
+function esInfinito(G) {
+  const U = utilesNT(G);
+  if (!U.has(G.start)) return false;
+  return cicloNT(G, U, true).hay;
+}
+
+// recursiva = criterio SINTÁCTICO: algún no terminal se deriva a sí mismo, útil o no.
+// Es lo que el alumno ve mirando las producciones; puede diferir de esInfinito en casos patológicos.
+function esRecursiva(G) { return cicloNT(G, G.nts, false); }
+
 function enFNC(G) {                              // ¿A→BC o A→a (+ opcional S→λ)?
   for (const p of G.prods) {
-    if (p.lhs === G.start && p.rhs === "") continue;
-    if (p.rhs.length === 1 && !G.nts.has(p.rhs)) continue;
+    if (p.lhs === G.start && p.rhs.length === 0) continue;
+    if (p.rhs.length === 1 && !G.nts.has(p.rhs[0])) continue;
     if (p.rhs.length === 2 && G.nts.has(p.rhs[0]) && G.nts.has(p.rhs[1])) continue;
     return false;
   }
   return true;
 }
 function terminalesDe(G) { const t = new Set(); for (const p of G.prods) for (const c of p.rhs) if (!G.nts.has(c)) t.add(c); return t; }
+
+// El símbolo distinguido NO cuenta como no terminal: la cátedra lo define aparte, S ∉ N ∪ T
+// (U2A slide 15 «Gramática», dictado 2C «se separa de ese conjunto para saber que es el start»;
+// el apunte UNICEN que cita la slide 19 escribe G1 = ({A, B}, {a}, P1, S1)). Decidido 2026-09-04.
+// Para volver a la convención de la bibliografía general (S ∈ N) alcanza con este flag.
+const S_ES_NT = false;
+function nombresNT(G) { return [...G.nts].filter(A => S_ES_NT || A !== G.start); }
+function cantidadNT(G) { return nombresNT(G).length; }
 
 let modoPractica = false;
 let preguntas = [];          // lista de preguntas del cuestionario
@@ -749,6 +1241,7 @@ let cuestCorregido = false;
 function generarCuestionario() {
   if (!G) return [];
   const NT = [...G.nts];
+  const nota = G.notacion;
   const qs = [];
   const min = longitudMinima(G);
   if (min !== Infinity) qs.push({ tipo: 'min', formato: 'numero',
@@ -760,22 +1253,50 @@ function generarCuestionario() {
     html: '¿La cadena vacía λ pertenece al lenguaje de la gramática?', correcta: a,
     explica: a ? 'Sí: desde el símbolo distinguido se deriva λ (equivale a que la cadena mínima tenga longitud 0).'
                : 'No: ninguna derivación desde el símbolo distinguido produce λ; toda palabra tiene al menos un símbolo.' }); }
+  { const r = esRecursiva(G), inf = esInfinito(G);
+    let ex;
+    if (r.hay) {
+      ex = 'Sí: ' + esc(r.testigo.label) + ' — el no terminal vuelve a aparecer a partir de sí mismo. ';
+      ex += inf
+        ? 'Por eso el lenguaje es infinito — «un lenguaje es infinito si y sólo si existe una gramática recursiva que lo genera» (slide 17 de U2A, Jurado Málaga), con la salvedad de que la recursión tiene que ser útil, como acá.'
+        : 'Aun así el lenguaje es finito: esa recursión pasa por un no terminal que nunca llega a derivar sólo terminales, así que no aporta palabras.';
+    } else {
+      ex = 'No: ningún no terminal vuelve a aparecer a partir de sí mismo, así que las palabras no pueden crecer sin cota y el lenguaje es finito.';
+    }
+    qs.push({ tipo: 'recursiva', formato: 'siNo',
+      html: '¿La gramática es recursiva (algún no terminal se deriva a sí mismo, directa o indirectamente)?',
+      correcta: r.hay, explica: ex }); }
   { const inf = esInfinito(G); qs.push({ tipo: 'fininf', formato: 'opcion', opciones: ['finito', 'infinito'],
     html: 'El lenguaje generado, ¿es finito o infinito?', correcta: inf ? 'infinito' : 'finito',
     explica: inf ? 'Infinito: existe recursividad útil, es decir un no terminal que reaparece y permite que las palabras crezcan sin cota.'
                  : 'Finito: no hay recursividad que permita crecimiento sin cota; el lenguaje tiene una cantidad finita de palabras.' }); }
+  { const c = G.clasif;
+    if (c.tipo !== 'trivial') {
+      const ETIQ = { derecha: 'lineal a derecha', izquierda: 'lineal a izquierda', mixta: 'mezcla de las dos direcciones', gic: 'ninguna forma regular' };
+      qs.push({ tipo: 'lineal', formato: 'opcion',
+        opciones: ['lineal a derecha', 'lineal a izquierda', 'mezcla de las dos direcciones', 'ninguna forma regular'],
+        html: 'Según la FORMA de sus producciones, ¿qué tipo de gramática es?',
+        correcta: ETIQ[c.tipo],
+        explica: esc(c.motivo) + '. Lineal a derecha: todas las producciones son A → aB o A → a; lineal a izquierda: A → Ba o A → a; más S → λ si λ pertenece al lenguaje. Esas dos formas son las gramáticas regulares (tipo 3) y, como tipo 3 ⊂ tipo 2, también son GIC. Cualquier otra forma es tipo 2.' });
+    } }
   { const f = enFNC(G); qs.push({ tipo: 'fnc', formato: 'siNo',
     html: '¿La gramática está en Forma Normal de Chomsky?', correcta: f,
     explica: 'En FNC toda producción tiene la forma A→BC (dos no terminales) o A→a (un terminal), admitiéndose S→λ. ' + (f ? 'La gramática lo cumple.' : 'La gramática tiene al menos una producción que no respeta esa forma.') + ' Es el requisito para aplicar el algoritmo CYK.' }); }
-  if (NT.length >= 2) qs.push({ tipo: 'start', formato: 'opcion', opciones: NT.slice().sort(),
-    html: '¿Cuál es el símbolo distinguido (inicial) de la gramática?', correcta: G.start,
-    explica: 'El símbolo distinguido es ' + G.start + ': el no terminal por el que comienza toda derivación.' });
-  qs.push({ tipo: 'nnt', formato: 'numero',
-    html: 'Indique la cantidad de no terminales de la gramática.', correcta: G.nts.size,
-    explica: 'La gramática tiene ' + G.nts.size + ' no terminales: ' + NT.join(', ') + '.' });
+  if (NT.length >= 2) qs.push({ tipo: 'start', formato: 'opcion', opciones: NT.slice().sort().map(A => ntATexto(A, nota)),
+    html: '¿Cuál es el símbolo distinguido (inicial) de la gramática?', correcta: ntATexto(G.start, nota),
+    explica: 'El símbolo distinguido es ' + esc(ntATexto(G.start, nota)) + ': el no terminal por el que comienza toda derivación.' });
+  { const nn = cantidadNT(G), lista = nombresNT(G).map(A => ntATexto(A, nota)).join(', ');
+    const startADerecha = !S_ES_NT && G.prods.some(p => p.rhs.includes(G.start));
+    qs.push({ tipo: 'nnt', formato: 'numero',
+      html: 'Indique la cantidad de no terminales de la gramática.', correcta: nn,
+      explica: (nn === 0 ? 'La gramática no tiene no terminales (N = ∅): todas las producciones parten del símbolo distinguido.'
+                         : 'La gramática tiene ' + nn + ' no terminal' + (nn > 1 ? 'es' : '') + ': ' + esc(lista) + '.')
+        + (S_ES_NT ? ' (Convención: el símbolo distinguido se cuenta como no terminal, S ∈ N.)'
+                   : ' (Convención de la cátedra: el símbolo distinguido no se cuenta, S ∉ N ∪ T — slide 15 de U2A.)')
+        + (startADerecha ? ' Acá el distinguido también aparece del lado derecho; igual se lo cuenta aparte.' : '') }); }
   { const T = [...terminalesDe(G)]; qs.push({ tipo: 'term', formato: 'numero',
     html: 'Indique la cantidad de terminales (símbolos del alfabeto) de la gramática.', correcta: T.length,
-    explica: 'La gramática usa ' + T.length + ' terminales: ' + T.join(', ') + '.' }); }
+    explica: 'La gramática usa ' + T.length + ' terminales: ' + esc(T.join(', ')) + '.' }); }
   qs.push({ tipo: 'nprod', formato: 'numero',
     html: 'Indique la cantidad de producciones, contando cada alternativa (separada por «|») por separado.', correcta: G.prods.length,
     explica: 'Contando cada alternativa como una producción, la gramática tiene ' + G.prods.length + '.' });
@@ -799,12 +1320,12 @@ function renderCuestionario() {
     if (!cuestCorregido) {
       if (q.formato === 'numero') inputs = `<input type="number" step="1" data-q="${i}" class="cuest-num">`;
       else { const ops = q.formato === 'siNo' ? [['Sí', 'si'], ['No', 'no']] : q.opciones.map(o => [o, o]);
-        inputs = ops.map(([lbl, val]) => `<label class="cuest-op"><input type="radio" name="q${i}" value="${val}"> ${lbl}</label>`).join(""); }
+        inputs = ops.map(([lbl, val]) => `<label class="cuest-op"><input type="radio" name="q${i}" value="${esc(val)}"> ${esc(lbl)}</label>`).join(""); }
     } else {
-      inputs = '<span class="hint">respuesta: <b>' + (q.eligioLbl ? q.eligioLbl : '(en blanco)') + '</b></span>';
+      inputs = '<span class="hint">respuesta: <b>' + (q.eligioLbl ? esc(q.eligioLbl) : '(en blanco)') + '</b></span>';
     }
     const fb = cuestCorregido
-      ? `<div class="cuest-fb">${q.correcto ? '<span class="ok">Correcto.</span>' : '<span class="err">Incorrecto.</span> <span class="hint">Respuesta correcta: <b>' + fmtCorrecta(q) + '</b>.</span>'}<div class="hint" style="margin-top:2px">${q.explica}</div></div>`
+      ? `<div class="cuest-fb">${q.correcto ? '<span class="ok">Correcto.</span>' : '<span class="err">Incorrecto.</span> <span class="hint">Respuesta correcta: <b>' + esc(fmtCorrecta(q)) + '</b>.</span>'}<div class="hint" style="margin-top:2px">${q.explica}</div></div>`
       : '';
     return `<li><div class="cuest-q">${q.html}</div><div class="cuest-in">${inputs}</div>${fb}</li>`;
   }).join("");
@@ -851,9 +1372,23 @@ const selPreset = document.getElementById("preset");
 const optCustom = document.createElement("option");
 optCustom.value = "custom"; optCustom.textContent = "✎ personalizada (a mano)";
 selPreset.appendChild(optCustom);
-PRESETS.forEach((p, i) => { const o = document.createElement("option"); o.value = i; o.textContent = p.nombre; selPreset.appendChild(o); });
+const GRUPOS = {
+  U2A: "Unidad 2A — lenguajes regulares (gramáticas de las slides)",
+  U3A: "Unidad 3A — gramáticas independientes de contexto (tipo 2)",
+};
+const grupos = {};
+PRESETS.forEach((p, i) => {
+  if (!grupos[p.unidad]) {
+    const g = document.createElement("optgroup");
+    g.label = GRUPOS[p.unidad] || p.unidad;
+    grupos[p.unidad] = g; selPreset.appendChild(g);
+  }
+  const o = document.createElement("option"); o.value = i; o.textContent = p.nombre;
+  grupos[p.unidad].appendChild(o);
+});
 // arrancar en personalizada con UNA producción vacía; no se activa hasta "Cargar gramática"
 selPreset.value = "custom";
+cambiarTipo(tipoDeclarado);
 filas = [{ lhs: "", rhs: "" }];
 renderEditor();
 G = null;
